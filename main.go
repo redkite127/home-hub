@@ -34,7 +34,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("Failed to read body!")
 			return
 		}
-
+		log.Println(t)
 		if t == "temperature;humidity" {
 			var sr SensorRecord
 			sr.Timestamp = time.Now()
@@ -42,8 +42,10 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 				log.Println("Failed to parse body!")
 				return
 			}
-
+			log.Println("Storing:", sr)
 			sensors.Store(room, sr)
+		} else {
+			log.Println("Unkown type")
 		}
 	} else if r.Method == "GET" {
 		var sr SensorRecord
@@ -57,17 +59,13 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func main() {
-	// Fake data ==> http://localhost:1234/sensors?room=kitchen
-	sr := SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98}
-	sensors.Store("kitchen", sr)
-
+func registerGauge(room, key, help string) {
 	opts := prometheus.GaugeOpts{
-		Name: "kitchen_temperature_celcius",
-		Help: "The kitchen temperature in degree celcius.",
+		Name: key,
+		Help: help,
 	}
 	gf := prometheus.NewGaugeFunc(opts, func() float64 {
-		if v, ok := sensors.Load("kitchen"); !ok {
+		if v, ok := sensors.Load(room); !ok {
 			return 0.0
 		} else {
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -75,6 +73,24 @@ func main() {
 		}
 	})
 	prometheus.Register(gf)
+}
+
+func main() {
+	// Fake data ==> http://localhost:1234/sensors?room=kitchen
+	sensors.Store("kitchen", SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98})
+	sensors.Store("hall", SensorRecord{Timestamp: time.Now(), Temperature: 20.01, Humidity: 54.12})
+	sensors.Store("bedroom", SensorRecord{Timestamp: time.Now(), Temperature: 16.85, Humidity: 45.82})
+	sensors.Store("laundry", SensorRecord{Timestamp: time.Now(), Temperature: 17.15, Humidity: 45.82})
+
+	registerGauge("kitchen", "kitchen_temperature_celcius", "The kitchen temperature in degree celcius.")
+	registerGauge("hall", "hall_temperature_celcius", "The hall temperature in degree celcius.")
+	registerGauge("bedroom", "bedroom_temperature_celcius", "The bedroom temperature in degree celcius.")
+	registerGauge("laundry", "laundry_temperature_celcius", "The laundry temperature in degree celcius.")
+
+	sensors.Range(func(k, v interface{}) bool {
+		log.Println("Room:", k.(string), "\tTemperature:", v.(SensorRecord).Temperature)
+		return true
+	})
 
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
