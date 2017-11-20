@@ -22,15 +22,6 @@ type SensorRecord struct {
 var sensors sync.Map
 
 var addr = flag.String("listen-address", ":1234", "The address to listen on for HTTP requests.")
-var (
-	nodeCounter = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "service_status",
-			Help: "Soa manager service status.",
-		},
-		[]string{"venture", "service", "status", "resource"},
-	)
-)
 
 func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 	room := r.URL.Query().Get("room")
@@ -66,13 +57,25 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-    // Fake data ==> http://localhost:1234/sensors?room=kitchen
-    sr := SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98}
-    sensors.Store("kitchen", sr)
-    
+	// Fake data ==> http://localhost:1234/sensors?room=kitchen
+	sr := SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98}
+	sensors.Store("kitchen", sr)
+
+	opts := prometheus.GaugeOpts{
+		Name: "kitchen_temperature_celcius",
+		Help: "The kitchen temperature in degree celcius.",
+	}
+	gf := prometheus.NewGaugeFunc(opts, func() float64 {
+		if v, ok := sensors.Load("kitchen"); !ok {
+			return 0.0
+		} else {
+			return v.(SensorRecord).Temperature
+		}
+	})
+
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
-	prometheus.MustRegister(nodeCounter)
+	prometheus.Register(gf)
 
 	http.Handle("/metrics", prometheus.Handler())
 	http.HandleFunc("/sensors", sensorsHandler)
