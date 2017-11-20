@@ -61,11 +61,15 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			sr = v.(SensorRecord)
 		}
 
-		fmt.Fprintf(w, "%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Timestamp.String())
+		fmt.Fprintf(w, "%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Timestamp.UTC().Format(time.RFC3339))
 	}
 }
 
 func main() {
+    // Fake data ==> http://localhost:1234/sensors?room=kitchen
+    sr := SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98}
+    sensors.Store("kitchen", sr)
+    
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 	prometheus.MustRegister(nodeCounter)
