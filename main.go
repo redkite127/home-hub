@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"sync"
@@ -69,13 +70,14 @@ func main() {
 		if v, ok := sensors.Load("kitchen"); !ok {
 			return 0.0
 		} else {
-			return v.(SensorRecord).Temperature
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			return v.(SensorRecord).Temperature + float64(r.Intn(200)-100)/100
 		}
 	})
+	prometheus.Register(gf)
 
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
-	prometheus.Register(gf)
 
 	http.Handle("/metrics", prometheus.Handler())
 	http.HandleFunc("/sensors", sensorsHandler)
