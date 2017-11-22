@@ -4,98 +4,170 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"math/rand"
 	"net/http"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/common/log"
+	"github.com/prometheus/common/version"
 )
 
+// SensorRecordExporter is the metrics exporter object.
+// Currently does not contain anything
+type SensorRecordExporter struct{}
+
+// SensorRecord structure defining the values of a sensor
 type SensorRecord struct {
 	Timestamp   time.Time
 	Temperature float64
 	Humidity    float64
 }
 
+const (
+	namespace = "sensor"
+	program   = "sensor_record"
+)
+
 var sensors sync.Map
 
 var addr = flag.String("listen-address", ":1234", "The address to listen on for HTTP requests.")
+var (
+	scrapeDurationDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "scrape", "collector_duration_seconds"),
+		"sensor_exporter: Duration of a collector scrape.",
+		nil,
+		nil,
+	)
+	scrapeSuccessDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "scrape", "collector_success"),
+		"sensor_exporter: Whether the collector succeeded.",
+		nil,
+		nil,
+	)
+)
+
+// Describe implements the prometheus.Collector interface
+func (e *SensorRecordExporter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- scrapeDurationDesc
+	ch <- scrapeSuccessDesc
+}
+
+// Collect implements the prometheus.Collector interface
+func (e *SensorRecordExporter) Collect(ch chan<- prometheus.Metric) {
+	begin := time.Now()
+
+	sensors.Range(func(k, v interface{}) bool {
+		// Don't send this metric if it is too old (probe not comunicating anymore)
+		if time.Now().Sub(v.(SensorRecord).Timestamp) > 2*time.Minute {
+			return true
+		}
+
+		t := v.(SensorRecord).Temperature
+		h := v.(SensorRecord).Humidity
+
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, "", "temperature"),
+				"The temperature of the room",
+				[]string{"room"},
+				nil),
+			prometheus.GaugeValue,
+			t, k.(string))
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(
+				prometheus.BuildFQName(namespace, "", "humidity"),
+				"The humidity of the room",
+				[]string{"room"},
+				nil),
+			prometheus.GaugeValue,
+			h, k.(string))
+		return true
+	})
+
+	duration := time.Since(begin)
+
+	var err error
+	err = nil
+
+	var success float64
+	if err != nil {
+		log.Errorf("ERROR: collector failed after %fs: %s", duration.Seconds(), err)
+		success = 0
+	} else {
+		log.Debugf("OK: collector succeeded after %fs", duration.Seconds())
+		success = 1
+	}
+
+	ch <- prometheus.MustNewConstMetric(scrapeDurationDesc, prometheus.GaugeValue, duration.Seconds())
+	ch <- prometheus.MustNewConstMetric(scrapeSuccessDesc, prometheus.GaugeValue, success)
+}
 
 func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 	room := r.URL.Query().Get("room")
 	if r.Method == "POST" {
-		//name := r.URL.Query().Get("name")
 		t := r.URL.Query().Get("type")
 		data, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Println("Failed to read body!")
+			log.Errorln("Failed to read body!")
 			return
 		}
-		log.Println(t)
+
 		if t == "temperature;humidity" {
 			var sr SensorRecord
 			sr.Timestamp = time.Now()
 			if _, err := fmt.Sscanf(string(data), "%f;%f", &sr.Temperature, &sr.Humidity); err != nil {
-				log.Println("Failed to parse body!")
+				log.Errorln("Failed to parse body!")
 				return
 			}
-			log.Println("Storing:", sr)
+
 			sensors.Store(room, sr)
-		} else {
-			log.Println("Unkown type")
+			log.Debugln("Stored record for room: ", room)
 		}
 	} else if r.Method == "GET" {
 		var sr SensorRecord
 		if v, ok := sensors.Load(room); !ok {
-			log.Println("No temperature value found for ", room)
+			log.Infoln("No temperatue value found for room: ", room)
 		} else {
 			sr = v.(SensorRecord)
 		}
 
-		fmt.Fprintf(w, "%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Timestamp.UTC().Format(time.RFC3339))
+		fmt.Fprintf(w, "%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Timestamp.String())
 	}
 }
 
-func registerGauge(room, key, help string) {
-	opts := prometheus.GaugeOpts{
-		Name: key,
-		Help: help,
-	}
-	gf := prometheus.NewGaugeFunc(opts, func() float64 {
-		if v, ok := sensors.Load(room); !ok {
-			return 0.0
-		} else {
-			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			return v.(SensorRecord).Temperature + float64(r.Intn(200)-100)/100
-		}
-	})
-	prometheus.Register(gf)
-}
-
-func main() {
-	// Fake data ==> http://localhost:1234/sensors?room=kitchen
-	sensors.Store("kitchen", SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98})
-	sensors.Store("hall", SensorRecord{Timestamp: time.Now(), Temperature: 20.01, Humidity: 54.12})
-	sensors.Store("bedroom", SensorRecord{Timestamp: time.Now(), Temperature: 16.85, Humidity: 45.82})
-	sensors.Store("laundry", SensorRecord{Timestamp: time.Now(), Temperature: 17.15, Humidity: 45.82})
-
-	registerGauge("kitchen", "kitchen_temperature_celcius", "The kitchen temperature in degree celcius.")
-	registerGauge("hall", "hall_temperature_celcius", "The hall temperature in degree celcius.")
-	registerGauge("bedroom", "bedroom_temperature_celcius", "The bedroom temperature in degree celcius.")
-	registerGauge("laundry", "laundry_temperature_celcius", "The laundry temperature in degree celcius.")
-
-	sensors.Range(func(k, v interface{}) bool {
-		log.Println("Room:", k.(string), "\tTemperature:", v.(SensorRecord).Temperature)
-		return true
-	})
-
+func init() {
+	// TODO - add this if you want to create a versioning of your program
+	// prometheus.MustRegister(version.NewCollector(program))
 	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
-	http.Handle("/metrics", prometheus.Handler())
+	// PUSH EXAMPLES
+	// sensors.Store("kitchen", SensorRecord{Timestamp: time.Now(), Temperature: 21.64, Humidity: 54.98})
+	// sensors.Store("hall", SensorRecord{Timestamp: time.Now(), Temperature: 20.01, Humidity: 54.12})
+	// sensors.Store("bedroom", SensorRecord{Timestamp: time.Now(), Temperature: 16.85, Humidity: 45.82})
+	// sensors.Store("laundry", SensorRecord{Timestamp: time.Now(), Temperature: 17.15, Humidity: 45.82})
+}
+
+func main() {
+	log.Infoln("Starting sensor reader/exporter", version.Info())
+	log.Infoln("Build context", version.BuildContext())
+
+	exporter := &SensorRecordExporter{}
+	prometheus.MustRegister(exporter)
+
+	http.Handle("/metrics", prometheus.UninstrumentedHandler())
 	http.HandleFunc("/sensors", sensorsHandler)
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`<html>
+                        <head><title>SensorRecord Exporter</title></head>
+                        <body>
+                        <h1>SensorRecord Exporter</h1>
+                        <p><a href='/metrics'>Metrics</a></p>
+                        <p><a href='/sensors'>Sensors</a></p>
+                        </body>
+                        </html>`))
+	})
 	log.Fatal(http.ListenAndServe(*addr, nil))
 }
