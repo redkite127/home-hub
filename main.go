@@ -32,7 +32,7 @@ const (
 
 var sensors sync.Map
 
-var addr = flag.String("listen-address", ":1234", "The address to listen on for HTTP requests.")
+var addr = flag.String("listen-address", ":2001", "The address to listen on for HTTP requests.")
 var (
 	scrapeDurationDesc = prometheus.NewDesc(
 		prometheus.BuildFQName(namespace, "scrape", "collector_duration_seconds"),
