@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  home-hub:
+    build: .
+    container_name: home-hub
+    image: home-hub
+    ports:
+      - 2001:2001
+    restart: always
