@@ -23,6 +23,7 @@ type SensorRecord struct {
 	Timestamp   time.Time
 	Temperature float64
 	Humidity    float64
+	Power       float64
 }
 
 const (
@@ -60,12 +61,13 @@ func (e *SensorRecordExporter) Collect(ch chan<- prometheus.Metric) {
 
 	sensors.Range(func(k, v interface{}) bool {
 		// Don't send this metric if it is too old (probe not comunicating anymore)
-		if time.Now().Sub(v.(SensorRecord).Timestamp) > 2*time.Minute {
+		if time.Now().Sub(v.(SensorRecord).Timestamp) > 15*time.Minute {
 			return true
 		}
 
 		t := v.(SensorRecord).Temperature
 		h := v.(SensorRecord).Humidity
+		p := v.(SensorRecord).Power
 
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
@@ -83,6 +85,16 @@ func (e *SensorRecordExporter) Collect(ch chan<- prometheus.Metric) {
 				nil),
 			prometheus.GaugeValue,
 			h, k.(string))
+		if p != 0 {
+			ch <- prometheus.MustNewConstMetric(
+				prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "", "power"),
+					"The power of the room",
+					[]string{"room"},
+					nil),
+				prometheus.GaugeValue,
+				p, k.(string))
+		}
 		return true
 	})
 
@@ -124,16 +136,30 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 
 			sensors.Store(room, sr)
 			log.Debugln("Stored record for room: ", room)
+		} else if t == "temperature;humidity;power" {
+			var sr SensorRecord
+			sr.Timestamp = time.Now()
+			if _, err := fmt.Sscanf(string(data), "%f;%f;%f", &sr.Temperature, &sr.Humidity, &sr.Power); err != nil {
+				log.Errorln("Failed to parse body!")
+				return
+			}
+
+			sensors.Store(room, sr)
+			log.Debugln("Stored record for room: ", room)
 		}
 	} else if r.Method == "GET" {
 		var sr SensorRecord
 		if v, ok := sensors.Load(room); !ok {
-			log.Infoln("No temperatue value found for room: ", room)
+			log.Infoln("No temperature value found for room: ", room)
 		} else {
 			sr = v.(SensorRecord)
 		}
 
-		fmt.Fprintf(w, "%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Timestamp.String())
+		if sr.Power == 0 {
+			fmt.Fprintf(w, "%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Timestamp.String())
+		} else {
+			fmt.Fprintf(w, "%.2f\n%.2f\n%.2f\n%s", sr.Temperature, sr.Humidity, sr.Power, sr.Timestamp.String())
+		}
 	}
 }
 
