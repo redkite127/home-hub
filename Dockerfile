@@ -13,5 +13,4 @@ RUN chmod +x ${bin_dir}/home-hub
 WORKDIR ${bin_dir}
 
 # it does accept the variable ${etc_dir} in the parameters
-#CMD ["./home-hub", "-config-dir", "/opt/tadaweb/etc"]
 CMD ["./home-hub"]
