@@ -1,16 +1,16 @@
-FROM alpine:3.6
+# BUILDER
+FROM golang:1.10 AS builder
+ARG SERVICE=home-hub
+COPY . /go/src/github.com/redkite1/$SERVICE
+WORKDIR /go/src/github.com/redkite1/$SERVICE
+RUN go get -d -v
+RUN CGO_ENABLED=0 GOOS=linux go install -a -installsuffix cgo  -v
 
-ENV bin_dir /opt/home-hub/bin
-ENV etc_dir /opt/home-hub/etc
-ENV var_dir /opt/home-hub/var
+# RUNNER
+FROM alpine:3.7
+ARG SERVICE=home-hub
+WORKDIR /usr/local/bin
+COPY --from=builder /go/bin/$SERVICE .
 
-RUN mkdir -p ${bin_dir} && mkdir -p ${etc_dir} && mkdir -p ${var_dir}
-
-COPY home-hub ${bin_dir}/home-hub
-
-RUN chmod +x ${bin_dir}/home-hub
-
-WORKDIR ${bin_dir}
-
-# it does accept the variable ${etc_dir} in the parameters
+# it does accept the variable $SERVICE
 CMD ["./home-hub"]
