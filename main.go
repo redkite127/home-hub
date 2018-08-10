@@ -77,14 +77,16 @@ func (e *SensorRecordExporter) Collect(ch chan<- prometheus.Metric) {
 				nil),
 			prometheus.GaugeValue,
 			t, k.(string))
-		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, "", "humidity"),
-				"The humidity of the room",
-				[]string{"room"},
-				nil),
-			prometheus.GaugeValue,
-			h, k.(string))
+		if h != 0 {
+			ch <- prometheus.MustNewConstMetric(
+				prometheus.NewDesc(
+					prometheus.BuildFQName(namespace, "", "humidity"),
+					"The humidity of the room",
+					[]string{"room"},
+					nil),
+				prometheus.GaugeValue,
+				h, k.(string))
+		}
 		if p != 0 {
 			ch <- prometheus.MustNewConstMetric(
 				prometheus.NewDesc(
@@ -126,27 +128,26 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if t == "temperature;humidity" {
-			var sr SensorRecord
-			sr.Timestamp = time.Now()
-			if _, err := fmt.Sscanf(string(data), "%f;%f", &sr.Temperature, &sr.Humidity); err != nil {
-				log.Errorln("Failed to parse body!")
-				return
-			}
-
-			sensors.Store(room, sr)
-			log.Debugln("Stored record for room: ", room)
+		var sr SensorRecord
+		sr.Timestamp = time.Now()
+		if t == "temperature" {
+			_, err = fmt.Sscanf(string(data), "%f", &sr.Temperature)
+		} else if t == "temperature;humidity" {
+			_, err = fmt.Sscanf(string(data), "%f;%f", &sr.Temperature, &sr.Humidity)
 		} else if t == "temperature;humidity;power" {
-			var sr SensorRecord
-			sr.Timestamp = time.Now()
-			if _, err := fmt.Sscanf(string(data), "%f;%f;%f", &sr.Temperature, &sr.Humidity, &sr.Power); err != nil {
-				log.Errorln("Failed to parse body!")
-				return
-			}
-
-			sensors.Store(room, sr)
-			log.Debugln("Stored record for room: ", room)
+			_, err = fmt.Sscanf(string(data), "%f;%f;%f", &sr.Temperature, &sr.Humidity, &sr.Power)
+		} else {
+			log.Errorln("Unkown type!")
+			return
 		}
+
+		if err != nil {
+			log.Errorln("Failed to parse body!")
+			return
+		}
+
+		sensors.Store(room, sr)
+		log.Debugln("Stored record for room: ", room)
 	} else if r.Method == "GET" {
 		var sr SensorRecord
 		if v, ok := sensors.Load(room); !ok {
