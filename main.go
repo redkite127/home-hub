@@ -134,6 +134,8 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			_, err = fmt.Sscanf(string(data), "%f", &sr.Temperature)
 		} else if t == "temperature;humidity" {
 			_, err = fmt.Sscanf(string(data), "%f;%f", &sr.Temperature, &sr.Humidity)
+		} else if t == "temperature;power" {
+			_, err = fmt.Sscanf(string(data), "%f;%f", &sr.Temperature, &sr.Power)
 		} else if t == "temperature;humidity;power" {
 			_, err = fmt.Sscanf(string(data), "%f;%f;%f", &sr.Temperature, &sr.Humidity, &sr.Power)
 		} else {
