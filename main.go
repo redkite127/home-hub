@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"sync"
 	"time"
 
@@ -169,7 +168,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 func init() {
 	// TODO - add this if you want to create a versioning of your program
 	// prometheus.MustRegister(version.NewCollector(program))
-	prometheus.Unregister(prometheus.NewProcessCollector(os.Getpid(), ""))
+	prometheus.Unregister(prometheus.NewProcessCollector(prometheus.ProcessCollectorOpts{}))
 	prometheus.Unregister(prometheus.NewGoCollector())
 
 	// PUSH EXAMPLES
