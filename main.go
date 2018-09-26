@@ -64,37 +64,50 @@ func (e *SensorRecordExporter) Collect(ch chan<- prometheus.Metric) {
 			return true
 		}
 
+		recordTime := v.(SensorRecord).Timestamp
 		t := v.(SensorRecord).Temperature
 		h := v.(SensorRecord).Humidity
 		p := v.(SensorRecord).Power
 
-		ch <- prometheus.MustNewConstMetric(
-			prometheus.NewDesc(
-				prometheus.BuildFQName(namespace, "", "temperature"),
-				"The temperature of the room",
-				[]string{"room"},
-				nil),
-			prometheus.GaugeValue,
-			t, k.(string))
-		if h != 0 {
-			ch <- prometheus.MustNewConstMetric(
+		ch <- prometheus.NewMetricWithTimestamp(recordTime,
+			prometheus.MustNewConstMetric(
 				prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "", "humidity"),
-					"The humidity of the room",
+					prometheus.BuildFQName(namespace, "", "temperature"),
+					"The temperature of the room",
 					[]string{"room"},
 					nil),
 				prometheus.GaugeValue,
-				h, k.(string))
+				t,
+				k.(string),
+			),
+		)
+		if h != 0 {
+			ch <- prometheus.NewMetricWithTimestamp(recordTime,
+				prometheus.MustNewConstMetric(
+					prometheus.NewDesc(
+						prometheus.BuildFQName(namespace, "", "humidity"),
+						"The humidity of the room",
+						[]string{"room"},
+						nil),
+					prometheus.GaugeValue,
+					h,
+					k.(string),
+				),
+			)
 		}
 		if p != 0 {
-			ch <- prometheus.MustNewConstMetric(
-				prometheus.NewDesc(
-					prometheus.BuildFQName(namespace, "", "power"),
-					"The power of the room",
-					[]string{"room"},
-					nil),
-				prometheus.GaugeValue,
-				p, k.(string))
+			ch <- prometheus.NewMetricWithTimestamp(recordTime,
+				prometheus.MustNewConstMetric(
+					prometheus.NewDesc(
+						prometheus.BuildFQName(namespace, "", "power"),
+						"The power of the room",
+						[]string{"room"},
+						nil),
+					prometheus.GaugeValue,
+					p,
+					k.(string),
+				),
+			)
 		}
 		return true
 	})

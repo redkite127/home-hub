@@ -3,3 +3,5 @@ home-hub
 .directory
 .dockerignore
 .gitignore
+debug
+tests
