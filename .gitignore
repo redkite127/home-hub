@@ -1,5 +1,6 @@
 home-hub
 
 .directory
+.vscode
 debug
 tests

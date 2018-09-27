@@ -3,5 +3,6 @@ home-hub
 .directory
 .dockerignore
 .gitignore
+.vscode
 debug
 tests
