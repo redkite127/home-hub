@@ -207,7 +207,7 @@ func init() {
 	// Create a new HTTPClient
 	var err error
 	c, err = client.NewHTTPClient(client.HTTPConfig{
-		Addr: "http://localhost:8086",
+		Addr: "http://10.161.0.130:8086",
 		// Username: username,
 		// Password: password,
 	})
@@ -217,9 +217,7 @@ func init() {
 	defer c.Close()
 
 	q := client.NewQuery("CREATE DATABASE home_hub", "", "")
-	if response, err := c.Query(q); err == nil && response.Error() == nil {
-		log.Println(response.Results)
-	} else {
+	if response, err := c.Query(q); err == nil && response.Error() != nil {
 		log.Fatal(response.Error())
 	}
 }
@@ -227,7 +225,7 @@ func init() {
 func main() {
 	http.HandleFunc("/sensors", sensorsHandler)
 
-	ticker := time.NewTicker(1 * time.Minute)
+	ticker := time.NewTicker(5 * time.Minute)
 	go func() {
 		for range ticker.C {
 			collect()
