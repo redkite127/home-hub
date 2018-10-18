@@ -217,7 +217,7 @@ func init() {
 	// Create a new HTTPClient
 	var err error
 	c, err = client.NewHTTPClient(client.HTTPConfig{
-		Addr: "http://localhost:8086",
+		Addr: "http://10.161.0.130:8086",
 		// Username: username,
 		// Password: password,
 	})
