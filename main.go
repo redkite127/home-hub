@@ -103,7 +103,8 @@ func collect() {
 				"L2": housePowerUsage.L2,
 				"L3": housePowerUsage.L3,
 			},
-			housePowerUsage.From.Add(housePowerUsage.To.Sub(housePowerUsage.From)/2),
+			//housePowerUsage.From.Add(housePowerUsage.To.Sub(housePowerUsage.From)/2),
+			housePowerUsage.To,
 		)
 		if err != nil {
 			log.Fatal(err)
@@ -137,6 +138,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		str := string(data)
 
+		//TODO send a specific frame which send a reset for saying we restarted the probe
 		if t == "L1;L2;L3" {
 			var l1, l2, l3 float64
 			if _, err = fmt.Sscanf(str, "%f;%f;%f", &l1, &l2, &l3); err != nil {
@@ -145,24 +147,32 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			housePowerUsage_mutex.Lock()
-			defer housePowerUsage_mutex.Unlock()
-
 			if housePowerUsage.From.IsZero() {
 				// I received an amount of power consummed, but I don't know since when...
-				// ==> trash it, but init From
+				// ==> trash it, reset accumulator
 				housePowerUsage.From = now
-				return
+				housePowerUsage.To = time.Time{}
+				housePowerUsage.L1 = 0
+				housePowerUsage.L2 = 0
+				housePowerUsage.L3 = 0
+				log.Debugln("first house power usage received")
 			} else if now.Sub(housePowerUsage.From) > 2*time.Minute {
 				// Too much time between from & to, there was probably a problem
-				// ==> trash it, but init From
+				// ==> trash it, reset accumulator
 				housePowerUsage.From = now
-				return
+				housePowerUsage.To = time.Time{}
+				housePowerUsage.L1 = 0
+				housePowerUsage.L2 = 0
+				housePowerUsage.L3 = 0
+				log.Debugln("staled house power usage received")
 			} else {
 				housePowerUsage.L1 += l1
 				housePowerUsage.L2 += l2
 				housePowerUsage.L3 += l3
 				housePowerUsage.To = now
+				log.Debugln("house power usage recorded", housePowerUsage)
 			}
+			housePowerUsage_mutex.Unlock()
 		} else {
 			var sr SensorRecord
 			sr.Timestamp = now
@@ -195,9 +205,9 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			sensors_mutex.Lock()
 			sensors[room] = sr
 			sensors_mutex.Unlock()
-		}
 
-		log.Debugln("Stored record for room: ", room)
+			log.Debugf("stored sensor record for room '%v'", room)
+		}
 	}
 }
 
@@ -207,7 +217,7 @@ func init() {
 	// Create a new HTTPClient
 	var err error
 	c, err = client.NewHTTPClient(client.HTTPConfig{
-		Addr: "http://10.161.0.130:8086",
+		Addr: "http://localhost:8086",
 		// Username: username,
 		// Password: password,
 	})
@@ -220,6 +230,8 @@ func init() {
 	if response, err := c.Query(q); err == nil && response.Error() != nil {
 		log.Fatal(response.Error())
 	}
+
+	log.SetLevel(log.DebugLevel)
 }
 
 func main() {
