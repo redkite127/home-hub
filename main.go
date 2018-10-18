@@ -35,6 +35,7 @@ const (
 	sensor_namespace  = "sensor"
 	house_power_usage = "house_power_usage_watts"
 	program           = "sensor_record"
+	collect_time      = 5 * time.Minute
 )
 
 var sensors = map[string]SensorRecord{}
@@ -156,7 +157,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 				housePowerUsage.L2 = 0
 				housePowerUsage.L3 = 0
 				log.Debugln("first house power usage received")
-			} else if now.Sub(housePowerUsage.From) > 2*time.Minute {
+			} else if now.Sub(housePowerUsage.To) > 2*time.Minute {
 				// Too much time between from & to, there was probably a problem
 				// ==> trash it, reset accumulator
 				housePowerUsage.From = now
@@ -237,7 +238,7 @@ func init() {
 func main() {
 	http.HandleFunc("/sensors", sensorsHandler)
 
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(collect_time)
 	go func() {
 		for range ticker.C {
 			collect()
