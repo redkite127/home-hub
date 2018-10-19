@@ -157,7 +157,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 				housePowerUsage.L2 = 0
 				housePowerUsage.L3 = 0
 				log.Debugln("first house power usage received")
-			} else if now.Sub(housePowerUsage.To) > 2*time.Minute {
+			} else if (housePowerUsage.To.IsZero() && now.Sub(housePowerUsage.From) > 2*time.Minute) || (!housePowerUsage.To.IsZero() && now.Sub(housePowerUsage.To) > 2*time.Minute) {
 				// Too much time between from & to, there was probably a problem
 				// ==> trash it, reset accumulator
 				housePowerUsage.From = now
