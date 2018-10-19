@@ -42,11 +42,12 @@ var sensors = map[string]SensorRecord{}
 var sensors_mutex = &sync.Mutex{}
 
 var housePowerUsage struct {
-	L1   float64
-	L2   float64
-	L3   float64
-	From time.Time
-	To   time.Time
+	L1    float64
+	L2    float64
+	L3    float64
+	From  time.Time
+	To    time.Time
+	Count int
 }
 var housePowerUsage_mutex = &sync.Mutex{}
 
@@ -100,9 +101,9 @@ func collect() {
 			"house_power",
 			map[string]string{},
 			map[string]interface{}{
-				"L1": housePowerUsage.L1,
-				"L2": housePowerUsage.L2,
-				"L3": housePowerUsage.L3,
+				"L1": housePowerUsage.L1 / float64(housePowerUsage.Count),
+				"L2": housePowerUsage.L2 / float64(housePowerUsage.Count),
+				"L3": housePowerUsage.L3 / float64(housePowerUsage.Count),
 			},
 			//housePowerUsage.From.Add(housePowerUsage.To.Sub(housePowerUsage.From)/2),
 			housePowerUsage.To,
@@ -117,6 +118,7 @@ func collect() {
 		housePowerUsage.L1 = 0
 		housePowerUsage.L2 = 0
 		housePowerUsage.L3 = 0
+		housePowerUsage.Count = 0
 	}
 
 	if len(bp.Points()) > 0 {
@@ -156,6 +158,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 				housePowerUsage.L1 = 0
 				housePowerUsage.L2 = 0
 				housePowerUsage.L3 = 0
+				housePowerUsage.Count = 0
 				log.Debugln("first house power usage received")
 			} else if (housePowerUsage.To.IsZero() && now.Sub(housePowerUsage.From) > 2*time.Minute) || (!housePowerUsage.To.IsZero() && now.Sub(housePowerUsage.To) > 2*time.Minute) {
 				// Too much time between from & to, there was probably a problem
@@ -165,12 +168,14 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 				housePowerUsage.L1 = 0
 				housePowerUsage.L2 = 0
 				housePowerUsage.L3 = 0
+				housePowerUsage.Count = 0
 				log.Debugln("staled house power usage received")
 			} else {
 				housePowerUsage.L1 += l1
 				housePowerUsage.L2 += l2
 				housePowerUsage.L3 += l3
 				housePowerUsage.To = now
+				housePowerUsage.Count++
 				log.Debugln("house power usage recorded", housePowerUsage)
 			}
 			housePowerUsage_mutex.Unlock()
