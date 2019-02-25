@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -31,6 +32,12 @@ type PowerUsageRecord struct {
 	Watts float64
 }
 
+type RoomSensor struct {
+	Temperature float64 `json:"temperature"`
+	Humidity    float64 `json:"humidity,omitempty"`
+	Battery     float64 `json:"battery,omitempty"`
+}
+
 const (
 	sensor_namespace  = "sensor"
 	house_power_usage = "house_power_usage_watts"
@@ -39,6 +46,7 @@ const (
 )
 
 var sensors = map[string]SensorRecord{}
+var lastSensors = map[string]SensorRecord{} //Won't be erased after a collect
 var sensors_mutex = &sync.Mutex{}
 
 var housePowerUsage struct {
@@ -210,9 +218,56 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 
 			sensors_mutex.Lock()
 			sensors[room] = sr
+			lastSensors[room] = sr
 			sensors_mutex.Unlock()
 
 			log.Debugf("stored sensor record for room '%v'", room)
+		}
+	} else if r.Method == "GET" {
+		if room == "" {
+			//return all rooms
+			rooms := map[string]RoomSensor{}
+
+			for k, s := range sensors {
+				var room RoomSensor
+				if s.Temperature != nil {
+					room.Temperature = *s.Temperature
+				}
+				if s.Humidity != nil {
+					room.Humidity = *s.Humidity
+				}
+				if s.Power != nil {
+					room.Battery = *s.Power
+				}
+
+				rooms[k] = room
+			}
+
+			roomsJSON, err := json.Marshal(rooms)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(roomsJSON)
+			return
+		} else {
+			rs, ok := lastSensors[room]
+			if !ok {
+				http.NotFound(w, r)
+				return
+			}
+
+			roomJSON, err := json.Marshal(rs)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(roomJSON)
+			return
 		}
 	}
 }
