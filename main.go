@@ -228,7 +228,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			//return all rooms
 			rooms := map[string]RoomSensor{}
 
-			for k, s := range sensors {
+			for k, s := range lastSensors {
 				var room RoomSensor
 				if s.Temperature != nil {
 					room.Temperature = *s.Temperature
