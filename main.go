@@ -224,6 +224,13 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Debugf("stored sensor record for room '%v'", room)
 		}
 	} else if r.Method == "GET" {
+
+		// if len(lastSensors) == 0 {
+		// 	f := new(float64)
+		// 	*f = 32
+		// 	lastSensors["kitchen"] = SensorRecord{Temperature: f}
+		// }
+
 		if room == "" {
 			//return all rooms
 			rooms := map[string]RoomSensor{}
