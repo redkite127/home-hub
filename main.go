@@ -36,6 +36,7 @@ type RoomSensor struct {
 	Temperature float64 `json:"temperature"`
 	Humidity    float64 `json:"humidity,omitempty"`
 	Battery     float64 `json:"battery,omitempty"`
+	Timestamp   string  `json:"timestamp"`
 }
 
 const (
@@ -228,7 +229,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 		// if len(lastSensors) == 0 {
 		// 	f := new(float64)
 		// 	*f = 32
-		// 	lastSensors["kitchen"] = SensorRecord{Temperature: f}
+		// 	lastSensors["kitchen"] = SensorRecord{Temperature: f, Timestamp: time.Now().UTC()}
 		// }
 
 		if room == "" {
@@ -236,7 +237,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			rooms := map[string]RoomSensor{}
 
 			for k, s := range lastSensors {
-				var room RoomSensor
+				room := RoomSensor{Timestamp: s.Timestamp.Format(time.RFC3339)}
 				if s.Temperature != nil {
 					room.Temperature = *s.Temperature
 				}
@@ -260,13 +261,24 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write(roomsJSON)
 			return
 		} else {
-			rs, ok := lastSensors[room]
+			s, ok := lastSensors[room]
 			if !ok {
 				http.NotFound(w, r)
 				return
 			}
 
-			roomJSON, err := json.Marshal(rs)
+			room := RoomSensor{Timestamp: s.Timestamp.Format(time.RFC3339)}
+			if s.Temperature != nil {
+				room.Temperature = *s.Temperature
+			}
+			if s.Humidity != nil {
+				room.Humidity = *s.Humidity
+			}
+			if s.Power != nil {
+				room.Battery = *s.Power
+			}
+
+			roomJSON, err := json.Marshal(room)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
