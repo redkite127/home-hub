@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,13 +151,14 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Errorln("Failed to read body!")
 			return
 		}
-		str := string(data)
+		//str := string(data)
+                str := strings.TrimSuffix(string(data), "\x00")
 
 		//TODO send a specific frame which send a reset for saying we restarted the probe
 		if t == "json" {
 			var jMap map[string]interface{}
-			if err := json.Unmarshal(data, &jMap); err != nil {
-				log.Errorln("Failed to parse JSON body!")
+			if err := json.Unmarshal([]byte(str), &jMap); err != nil {
+				log.WithError(err).Errorln("Failed to parse JSON body!")
 				return
 			}
 
