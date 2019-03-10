@@ -151,8 +151,9 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Errorln("Failed to read body!")
 			return
 		}
-		//str := string(data)
-                str := strings.TrimSuffix(string(data), "\x00")
+
+		// My Arduino lib is sending \x00 at the end of the string
+		str := strings.TrimSuffix(string(data), "\x00")
 
 		//TODO send a specific frame which send a reset for saying we restarted the probe
 		if t == "json" {
@@ -172,7 +173,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 
 			sensors_mutex.Lock()
-			sensors[room] = sr
+			//sensors[room] = sr
 			lastSensors[room] = sr
 			sensors_mutex.Unlock()
 
