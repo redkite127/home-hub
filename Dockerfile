@@ -1,15 +1,15 @@
 # BUILDER
-FROM golang:1.10 AS builder
+FROM golang:1.12 AS builder
 ARG SERVICE=home-hub
-WORKDIR /go/src/github.com/redkite1/$SERVICE
+WORKDIR /opt/$SERVICE
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/$SERVICE
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -o /opt/$SERVICE/$SERVICE
 
 # RUNNER
-FROM alpine:3.8
+FROM alpine:3.9
 WORKDIR /usr/local/bin
 ARG SERVICE=home-hub
-COPY --from=builder /go/bin/$SERVICE .
+COPY --from=builder /opt/$SERVICE/$SERVICE .
 
 # it does accept the variable $SERVICE
 CMD ["home-hub"]
