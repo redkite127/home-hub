@@ -19,10 +19,11 @@ type SensorRecordExporter struct{}
 
 // SensorRecord structure defining the values of a sensor
 type SensorRecord struct {
-	Timestamp   time.Time
-	Temperature *float64
-	Humidity    *float64
-	Power       *float64
+	Timestamp    time.Time
+	Temperature  *float64
+	Humidity     *float64
+	Power        *float64
+	LastMotionAt time.Time
 }
 
 // PowerUsageRecord structure holds the amount of watts consummed in a period
@@ -33,10 +34,11 @@ type PowerUsageRecord struct {
 }
 
 type RoomSensor struct {
-	Temperature float64 `json:"temperature"`
-	Humidity    float64 `json:"humidity,omitempty"`
-	Battery     float64 `json:"battery,omitempty"`
-	Timestamp   string  `json:"timestamp"`
+	Temperature  float64 `json:"temperature,omitempty"`
+	Humidity     float64 `json:"humidity,omitempty"`
+	Battery      float64 `json:"battery,omitempty"`
+	LastMotionAt string  `json:"last_motion_at,omitempty"`
+	Timestamp    string  `json:"timestamp"`
 }
 
 const (
@@ -151,7 +153,29 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 		str := string(data)
 
 		//TODO send a specific frame which send a reset for saying we restarted the probe
-		if t == "L1;L2;L3" {
+		if t == "json" {
+			var jMap map[string]interface{}
+			if err := json.Unmarshal(data, &jMap); err != nil {
+				log.Errorln("Failed to parse JSON body!")
+				return
+			}
+
+			var sr SensorRecord
+			sr.Timestamp = now
+
+			if detected, ok := jMap["motion_detected"].(bool); ok && detected {
+				sr.LastMotionAt = now
+			} else {
+				return
+			}
+
+			sensors_mutex.Lock()
+			sensors[room] = sr
+			lastSensors[room] = sr
+			sensors_mutex.Unlock()
+
+			log.Debugf("stored JSON sensor record for room '%v'", room)
+		} else if t == "L1;L2;L3" {
 			var l1, l2, l3 float64
 			if _, err = fmt.Sscanf(str, "%f;%f;%f", &l1, &l2, &l3); err != nil {
 				log.Errorln("Failed to parse body!")
@@ -247,6 +271,9 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 				if s.Power != nil {
 					room.Battery = *s.Power
 				}
+				if !s.LastMotionAt.IsZero() {
+					room.LastMotionAt = s.LastMotionAt.Format(time.RFC3339)
+				}
 
 				rooms[k] = room
 			}
@@ -259,7 +286,6 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(roomsJSON)
-			return
 		} else {
 			s, ok := lastSensors[room]
 			if !ok {
@@ -277,6 +303,9 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			if s.Power != nil {
 				room.Battery = *s.Power
 			}
+			if !s.LastMotionAt.IsZero() {
+				room.LastMotionAt = s.LastMotionAt.Format(time.RFC3339)
+			}
 
 			roomJSON, err := json.Marshal(room)
 			if err != nil {
@@ -286,8 +315,9 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(roomJSON)
-			return
 		}
+
+		return
 	}
 }
 
