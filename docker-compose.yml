@@ -7,4 +7,6 @@ services:
     image: home-hub
     ports:
       - 2001:2001
+    volumes:
+      - ./toc_toc.txt:/opt/home-hub/toc_toc.txt:ro
     restart: always

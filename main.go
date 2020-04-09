@@ -141,6 +141,8 @@ func collect() {
 	}
 }
 
+var lastTocToc = time.Now().UTC()
+
 func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().UTC()
 	room := r.URL.Query().Get("room")
@@ -156,7 +158,19 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 		str := strings.TrimSuffix(string(data), "\x00")
 
 		//TODO send a specific frame which send a reset for saying we restarted the probe
-		if t == "json" {
+		if t == "string" {
+			if str == "toc toc" {
+				if time.Now().UTC().Sub(lastTocToc) > 2*time.Second {
+					lastTocToc = time.Now().UTC()
+					PlayTocToc()
+					log.Debugf("toc toc - triggered")
+				} else {
+					log.Debugf("toc toc - skipped")
+				}
+			} else {
+				log.Debugln("unmanaged string received:", str)
+			}
+		} else if t == "json" {
 			var jMap map[string]interface{}
 			if err := json.Unmarshal([]byte(str), &jMap); err != nil {
 				log.WithError(err).Errorln("Failed to parse JSON body!")
@@ -330,7 +344,7 @@ func init() {
 	// Create a new HTTPClient
 	var err error
 	c, err = client.NewHTTPClient(client.HTTPConfig{
-		Addr: "http://10.161.0.130:8086",
+		Addr: "http://10.161.0.111:8086",
 		// Username: username,
 		// Password: password,
 	})
