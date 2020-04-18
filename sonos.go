@@ -14,7 +14,5 @@ func PlayTocToc() {
 	if err == nil {
 		str = strings.TrimSuffix(string(dat), "\n")
 	}
-	go http.Get("http://10.161.0.111:5005/Kitchen/say/" + url.PathEscape(str))
-	go http.Get("http://10.161.0.111:5005/Dressing/say/" + url.PathEscape(str))
-	go http.Get("http://10.161.0.111:5005/Dining%20Room/say/" + url.PathEscape(str))
+	go http.Get("http://10.161.0.111:5005/sayall/" + url.PathEscape(str) + "/fr/65")
 }
