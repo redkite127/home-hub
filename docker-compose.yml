@@ -2,11 +2,11 @@ version: '3'
 
 services:
   home-hub:
-    build: .
+    image: redkite/home-hub
     container_name: home-hub
-    image: home-hub
     ports:
       - 2001:2001
     volumes:
+      - ./configs/:/usr/local/etc:ro
       - ./toc_toc.txt:/opt/home-hub/toc_toc.txt:ro
     restart: always
