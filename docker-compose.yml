@@ -8,5 +8,4 @@ services:
       - 2001:2001
     volumes:
       - ./configs/:/usr/local/etc:ro
-      - ./toc_toc.txt:/opt/home-hub/toc_toc.txt:ro
-    restart: always
+    restart: unless-stopped
