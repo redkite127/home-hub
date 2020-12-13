@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
+	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/viper"
 )
 
 // SensorRecordExporter is the metrics exporter object.
@@ -46,12 +48,12 @@ const (
 	sensor_namespace  = "sensor"
 	house_power_usage = "house_power_usage_watts"
 	program           = "sensor_record"
-	collect_time      = 5 * time.Minute
 )
 
 var sensors = map[string]SensorRecord{}
 var lastSensors = map[string]SensorRecord{} //Won't be erased after a collect
 var sensors_mutex = &sync.Mutex{}
+var collect_time = 5 * time.Minute
 
 var housePowerUsage struct {
 	L1    float64
@@ -341,10 +343,25 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 var c client.Client
 
 func init() {
+	viper.SetConfigName("config")
+	viper.AddConfigPath("./configs")
+	viper.AddConfigPath("/usr/local/etc")
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Fatalln(err)
+	}
+	if ll, err := logrus.ParseLevel(viper.GetString("log_level")); err != nil {
+		log.SetLevel(log.InfoLevel)
+	} else {
+		log.SetLevel(ll)
+	}
+	log.Infoln("using config:", viper.ConfigFileUsed())
+
 	// Create a new HTTPClient
+	log.Infoln("InfluxDB URI:", viper.GetString("influxdb_uri"))
 	var err error
 	c, err = client.NewHTTPClient(client.HTTPConfig{
-		Addr: "http://10.161.0.111:8086",
+		Addr: viper.GetString("influxdb_uri"),
 		// Username: username,
 		// Password: password,
 	})
@@ -358,7 +375,9 @@ func init() {
 		log.Fatal(response.Error())
 	}
 
-	log.SetLevel(log.DebugLevel)
+	// init collection frequency
+	collect_time = viper.GetDuration("collection_frequency_minutes") * time.Minute
+	log.Infoln("collection frequency:", collect_time)
 }
 
 func main() {

@@ -2,5 +2,4 @@ home-hub
 
 .directory
 .vscode
-debug
-tests
+configs/config.yml
