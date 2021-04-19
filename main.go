@@ -267,7 +267,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			sensors_mutex.Unlock()
 			log.Debugf("stored sensor record for room '%v'", room)
 
-			if err := mqtt.Publish(fmt.Sprintf("%s/sensor", room), sr); err != nil {
+			if err := mqtt.Publish(fmt.Sprintf("%s/sensor", room), true, sr); err != nil {
 				log.WithError(err).Errorf("failed to publish sensor record for room '%v'", room)
 			}
 		}

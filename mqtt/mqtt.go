@@ -35,13 +35,13 @@ func InitMQTT(host string, port int, username, password string) {
 	}
 }
 
-func Publish(topic string, payload interface{}) error {
+func Publish(topic string, retained bool, payload interface{}) error {
 	jsonData, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("[MQTT] failed to encode the payload to json: %w", err)
 	}
 
-	token := Client.Publish(topic, 0, false, jsonData)
+	token := Client.Publish(topic, 0, retained, jsonData)
 	if !token.WaitTimeout(1*time.Second) || token.Error() != nil {
 		return fmt.Errorf("[MQTT] failed to publish the payload: %w", token.Error())
 	}
