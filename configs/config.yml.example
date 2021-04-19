@@ -3,3 +3,8 @@ sonos_api_uri: http://127.0.0.1:5005
 influxdb_uri: http://127.0.0.1:8086
 collection_frequency_minutes: 5
 toc_toc: toc toc toc
+mqtt:
+  host: "127.0.0.1"
+  port: 1883
+  username: home-hub
+  password: xxxxxxxxxxxxxxxxxxxxxxxxx
