@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/influxdata/influxdb/client/v2"
+	"github.com/redkite1/home-hub/mqtt"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
@@ -264,8 +265,11 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			sensors[room] = sr
 			lastSensors[room] = sr
 			sensors_mutex.Unlock()
-
 			log.Debugf("stored sensor record for room '%v'", room)
+
+			if err := mqtt.Publish(fmt.Sprintf("%s/sensor", room), sr); err != nil {
+				log.WithError(err).Errorf("failed to publish sensor record for room '%v'", room)
+			}
 		}
 	} else if r.Method == "GET" {
 
@@ -378,6 +382,9 @@ func init() {
 	// init collection frequency
 	collect_time = viper.GetDuration("collection_frequency_minutes") * time.Minute
 	log.Infoln("collection frequency:", collect_time)
+
+	// init MQTT client
+	mqtt.InitMQTT(viper.GetString("mqtt.host"), viper.GetInt("mqtt.port"), viper.GetString("mqtt.username"), viper.GetString("mqtt.password"))
 }
 
 func main() {
