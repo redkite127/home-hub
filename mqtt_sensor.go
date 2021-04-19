@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/redkite1/home-hub/mqtt"
@@ -27,8 +26,7 @@ func MQTTregisterRoomSensor(room string, humidity, battery bool) {
 
 func MQTTsendRoomSensor(room string, sr SensorRecord) {
 	topic := fmt.Sprintf("homeassistant/sensor/mqtt_%s/state", room)
-	payload, _ := json.Marshal(sr)
-	if err := mqtt.Publish(topic, true, payload); err != nil {
+	if err := mqtt.Publish(topic, true, sr); err != nil {
 		log.WithError(err).Errorf("failed to publish sensor record for room '%v'", room)
 	}
 }

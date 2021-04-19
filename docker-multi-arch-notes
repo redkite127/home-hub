@@ -1,6 +1,6 @@
 * Once you have built & pushed each images on your platforms you can create a manifest file and push it
 
-docker manifest push redkite/home-hub:latest
+docker manifest rm redkite/home-hub:latest
 
 docker manifest create \
 redkite/home-hub:latest \
