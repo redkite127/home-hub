@@ -1,11 +1,11 @@
 # BUILDER
-FROM golang:1.15 AS builder
+FROM golang:1.16 AS builder
 WORKDIR /go-build
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -mod=vendor -a -o /go-build/home-hub .
 
 # RUNNER
-FROM alpine:3.12
+FROM alpine:3.13
 WORKDIR /usr/local/bin
 COPY --from=builder /go-build/home-hub .
 
