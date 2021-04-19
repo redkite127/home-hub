@@ -238,19 +238,23 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			if t == "temperature" {
 				sr.Temperature = new(float64)
 				_, err = fmt.Sscanf(str, "%f", sr.Temperature)
+				MQTTregisterRoomSensor(room, false, false)
 			} else if t == "temperature;humidity" {
 				sr.Temperature = new(float64)
 				sr.Humidity = new(float64)
 				_, err = fmt.Sscanf(str, "%f;%f", sr.Temperature, sr.Humidity)
+				MQTTregisterRoomSensor(room, true, false)
 			} else if t == "temperature;power" {
 				sr.Temperature = new(float64)
 				sr.Power = new(float64)
 				_, err = fmt.Sscanf(str, "%f;%f", sr.Temperature, sr.Power)
+				MQTTregisterRoomSensor(room, false, true)
 			} else if t == "temperature;humidity;power" {
 				sr.Temperature = new(float64)
 				sr.Humidity = new(float64)
 				sr.Power = new(float64)
 				_, err = fmt.Sscanf(str, "%f;%f;%f", sr.Temperature, sr.Humidity, sr.Power)
+				MQTTregisterRoomSensor(room, true, true)
 			} else {
 				log.Errorln("Unkown type!")
 				return
@@ -267,9 +271,7 @@ func sensorsHandler(w http.ResponseWriter, r *http.Request) {
 			sensors_mutex.Unlock()
 			log.Debugf("stored sensor record for room '%v'", room)
 
-			if err := mqtt.Publish(fmt.Sprintf("%s/sensor", room), true, sr); err != nil {
-				log.WithError(err).Errorf("failed to publish sensor record for room '%v'", room)
-			}
+			MQTTsendRoomSensor(room, sr)
 		}
 	} else if r.Method == "GET" {
 
