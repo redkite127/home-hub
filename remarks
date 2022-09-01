@@ -1,0 +1,5 @@
+# Launching a local InfluxDB instance
+docker run --name influx_01 -p 8086:8086 influxdb
+
+# Launching a local Grafana instance
+docker run --name grafana_01 -p 3000:3000  grafana/grafana
