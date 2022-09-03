@@ -1,6 +1,9 @@
 port: 2001
 frequencies:
   electrical_data: 1m
+homeassistant:
+  url: http://<address>:8123
+  token: <token>
 influxdb:
   url: http://<address>:8086
   token: <token>

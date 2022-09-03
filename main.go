@@ -6,9 +6,10 @@ import (
 	"log"
 	"net/http"
 	"syscall"
-	"time"
 
 	"github.com/oklog/run"
+	"github.com/redkite127/home-hub/homeassistant"
+	"github.com/redkite127/home-hub/influxdb"
 	"github.com/spf13/viper"
 )
 
@@ -19,11 +20,15 @@ func init() {
 	if err := viper.ReadInConfig(); err != nil {
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
+
+	homeassistant.InitConfig()
+
+	influxdb.InitConfig()
+	influxEnergyW = influxdb.GetClient().WriteAPI(viper.GetString("influxdb.organization"), "home_hub_test")
 }
 
 func main() {
-	initInfluxClient()
-	defer influxC.Close()
+	defer influxdb.GetClient().Close()
 
 	var g run.Group
 
@@ -51,7 +56,7 @@ func main() {
 		g.Add(
 			func() error {
 				log.Println("started collecting electrical data every", viper.GetDuration("frequencies.electrical_data"))
-				err := scheduler(ctx, collectAndSendElectricalData, time.Minute)
+				err := scheduler(ctx, collectAndSendElectricalData, viper.GetDuration("frequencies.electrical_data"))
 				log.Println("stopped collecting electrical data")
 
 				return err

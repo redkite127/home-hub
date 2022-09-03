@@ -126,27 +126,5 @@ func sendElectricalData(es ElectricalState) {
 		es.timestamp)
 	influxEnergyW.WritePoint(p4)
 
-	// p2 := influxdb2.NewPoint(
-	// 	"energy_meter",
-	// 	map[string]string{},
-	// 	map[string]interface{}{
-	// 		"L1": es.powerConsumptionL1,
-	// 		"L2": es.powerConsumptionL2,
-	// 		"L3": es.powerConsumptionL3,
-	// 	},
-	// 	es.timestamp)
-	// influxEnergyW.WritePoint(p2)
-
-	// p3 := influxdb2.NewPoint(
-	// 	"energy_voltage",
-	// 	map[string]string{},
-	// 	map[string]interface{}{
-	// 		"L1": es.voltageL1,
-	// 		"L2": es.voltageL2,
-	// 		"L3": es.voltageL3,
-	// 	},
-	// 	es.timestamp)
-	// influxEnergyW.WritePoint(p3)
-
 	influxEnergyW.Flush()
 }

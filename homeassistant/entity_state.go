@@ -8,11 +8,7 @@ import (
 )
 
 func GetEntityState(id string) (EntityState, error) {
-	//TODO get those values from config file
-	ha_url := "http://10.28.3.149:8123"
-	ha_token := "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiI2OTI4MmZlNTJiMDA0YmJjOWNmOTM1N2JkZTkzYjRhNyIsImlhdCI6MTY2MDY3OTIxMywiZXhwIjoxOTc2MDM5MjEzfQ.UyD2x8XZqOCsrvdROajq2uz9efvoHMg45mapgZDN9tQ"
-
-	url, err := url.JoinPath(ha_url, "api", "states", id)
+	url, err := url.JoinPath(config.URL, "api", "states", id)
 	if err != nil {
 		return EntityState{}, err
 	}
@@ -22,7 +18,7 @@ func GetEntityState(id string) (EntityState, error) {
 		return EntityState{}, err
 	}
 
-	req.Header.Add("Authorization", "Bearer "+ha_token)
+	req.Header.Add("Authorization", "Bearer "+config.Token)
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
