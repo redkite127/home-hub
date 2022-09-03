@@ -15,6 +15,7 @@ import (
 
 func init() {
 	viper.SetConfigName("default")
+	viper.AddConfigPath("/usr/local/etc/")
 	viper.AddConfigPath("./configs/")
 
 	if err := viper.ReadInConfig(); err != nil {
