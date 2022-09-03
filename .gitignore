@@ -2,4 +2,4 @@ home-hub
 
 .directory
 .vscode
-configs/config.yml
+configs/default.yml
