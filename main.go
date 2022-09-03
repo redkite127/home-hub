@@ -25,7 +25,7 @@ func init() {
 	homeassistant.InitConfig()
 
 	influxdb.InitConfig()
-	influxEnergyW = influxdb.GetClient().WriteAPI(viper.GetString("influxdb.organization"), "home_hub_test")
+	influxEnergyW = influxdb.GetClient().WriteAPI(viper.GetString("influxdb.organization"), viper.GetString("influxdb.bucket"))
 }
 
 func main() {

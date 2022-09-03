@@ -10,6 +10,7 @@ var config struct {
 	URL          string `mapstructure:"url"`
 	Token        string `mapstructure:"token"`
 	Organization string `mapstructure:"organization"`
+	Bucket       string `mapstructure:"bucket"`
 }
 
 func InitConfig() {

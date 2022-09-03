@@ -8,3 +8,4 @@ influxdb:
   url: http://<address>:8086
   token: <token>
   organization: <org_name>
+  bucket: <bucket_name>
