@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -39,10 +40,18 @@ func collectAndSendElectricalData() error {
 }
 
 func collectElectricalData() (es ElectricalState, err error) {
-	es.timestamp = time.Now().UTC() //TODO should I get date from one of the call to HA instead?
-
-	if es.energyConsumedDay, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_energy_consumption_tarif_1"); err != nil {
+	// retrive time on the first sample
+	if entity, err := homeassistant.GetEntityState("sensor.electricity_meter_energy_consumption_tarif_1"); err != nil {
 		return ElectricalState{}, err
+	} else {
+		es.timestamp = entity.LastUpdated
+
+		v, err := strconv.ParseFloat(entity.State, 64)
+		if err != nil {
+			return ElectricalState{}, err
+		}
+
+		es.energyConsumedDay = v
 	}
 
 	if es.energyConsumedNight, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_energy_consumption_tarif_2"); err != nil {
