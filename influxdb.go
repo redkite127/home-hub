@@ -1,13 +1,19 @@
 package main
 
 import (
+	"log"
+
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/spf13/viper"
 )
 
 var influxC influxdb2.Client
 
 func initInfluxClient() {
-	//TODO get this value from config file
-	influxC = influxdb2.NewClient("http://localhost:8086", "apnP6gCZ3E0XaE_nIqjaGcznm5h0yaK8kS0Y3hSxa4hPcNjrbxrfmLW81yufCm1Dp-VGcscj3c780vDP4hwPXQ==")
-	influxEnergyW = influxC.WriteAPI("baclain_28", "home_hub")
+	config := viper.Sub("influxdb")
+
+	influxC = influxdb2.NewClient(config.GetString("url"), config.GetString("token"))
+	influxEnergyW = influxC.WriteAPI(config.GetString("organization"), "home_hub_test")
+
+	log.Println("initialized InfluxDB client:", influxC.ServerURL())
 }

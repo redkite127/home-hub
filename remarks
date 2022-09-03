@@ -3,3 +3,6 @@ docker run --name influx_01 -p 8086:8086 influxdb
 
 # Launching a local Grafana instance
 docker run --name grafana_01 -p 3000:3000  grafana/grafana
+
+# Cross-compile for RaspBerry Pi 3
+env GOOS=linux GOARCH=arm GOARM=7 go build
