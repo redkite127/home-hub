@@ -1,0 +1,21 @@
+# BUILDER
+FROM golang:1.19 AS builder
+WORKDIR /go-build
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -a -o /go-build/home-hub .
+
+# RUNNER
+FROM alpine:3
+WORKDIR /usr/local/bin
+COPY --from=builder /go-build/home-hub .
+
+# it does accept the variable $SERVICE
+CMD ["home-hub"]
+
+# Run locally
+# docker build -f Dockerfile.linux-armv7 -t home-hub:v2 .
+# docker run --rm -v $(pwd)/configs/default.yml:/usr/local/etc/default.yml:ro home-hub:v2
+#
+# Upload to Docker Hub
+# docker build -f Dockerfile.linux-armv7 -t redkite/home-hub:v2-linux-armv7 .
+# docker push redkite/home-hub:v2-linux-armv7
