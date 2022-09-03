@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
@@ -33,7 +32,7 @@ func collectAndSendElectricalData() error {
 	if err != nil {
 		return fmt.Errorf("failed to collect electrical data: %w", err)
 	}
-	log.Println(es)
+	//log.Println(es)  // TODO log it only in DEBUG mode
 	sendElectricalData(es)
 
 	return nil
