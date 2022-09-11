@@ -2,7 +2,7 @@
 FROM golang:1.19 AS builder
 WORKDIR /go-build
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=8 go build -a -o /go-build/home-hub .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -o /go-build/home-hub .
 
 # RUNNER
 FROM alpine:3
