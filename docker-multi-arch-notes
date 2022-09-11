@@ -1,0 +1,26 @@
+* Once you have built & pushed each images on your platforms you can create a manifest file and push it
+
+docker manifest rm redkite/home-hub:latest
+
+docker manifest create \
+redkite/home-hub:latest \
+--amend redkite/home-hub:latest-linux-amd64 \
+--amend redkite/home-hub:latest-linux-armv7 \
+--amend redkite/home-hub:latest-linux-armv8
+
+docker manifest push redkite/home-hub:latest
+
+
+
+-----V2
+
+
+docker manifest rm redkite/home-hub:v2
+
+docker manifest create \
+redkite/home-hub:v2 \
+--amend redkite/home-hub:v2-linux-amd64 \
+--amend redkite/home-hub:v2-linux-armv7 \
+--amend redkite/home-hub:v2-linux-armv8
+
+docker manifest push redkite/home-hub:v2
