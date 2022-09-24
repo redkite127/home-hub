@@ -81,3 +81,24 @@ jobs:
           platforms: linux/arm64
           push: true
           tags: redkite/home-hub:v2-linux-arm64
+
+  build-multiarch:
+    needs: [build-amd64, build-arm64] 
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Build multiarch image
+        run: |
+          docker manifest create \
+          redkite/home-hub:v2 \
+          --amend redkite/home-hub:v2-linux-amd64 \
+          --amend redkite/home-hub:v2-linux-arm64
+      -
+        name: Push multiarch image
+        run: docker manifest push redkite/home-hub:v2
