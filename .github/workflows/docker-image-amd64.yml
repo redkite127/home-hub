@@ -2,7 +2,7 @@ name: build-and-publish-docker-images
 
 on:
   push:
-    branches: [ "master", "v2" ]
+    branches: [ "v2" ]
 
 jobs:
 
@@ -13,4 +13,17 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: actions/setup-go@v3.3.0
-    - run: CGO_ENABLED=0 GOOS=linux go build . -a -o amd64/home-hub
+    - name: Build executable
+      run: CGO_ENABLED=0 GOOS=linux go build -a -o builds/amd64/home-hub .
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v3
+      with:
+        context: .
+        file: Dockerfile.no_build.linux-amd64
+        push: true
+        tags: redkite/home-hub:v2-linux-amd64
