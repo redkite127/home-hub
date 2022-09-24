@@ -1,0 +1,16 @@
+name: Docker Image AMD64
+
+on:
+  push:
+    branches: [ "master", "v2" ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker image for AMD64
+      run: docker build . --file Dockerfile.linux-amd64 --tag redkite/home-hub:v2-linux-amd64
