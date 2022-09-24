@@ -24,6 +24,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
       -
         name: Build executable
         run: CGO_ENABLED=0 GOOS=linux go build -a -o builds/home-hub .
@@ -55,6 +60,11 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
       -
         name: Build executable
         run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -o builds/home-hub .
