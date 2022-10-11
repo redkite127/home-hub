@@ -1,9 +1,16 @@
 port: 2001
 frequencies:
   electrical_data: 1m
+  temperature_data: 15m
 homeassistant:
   url: http://<address>:8123
   token: <token>
+philips_hue:
+  url: https://<address>
+  token: <token>
+  devices:
+    <device_id>: <device_name>
+    <device_id>: <device_name>
 influxdb:
   url: http://<address>:8086
   token: <token>
