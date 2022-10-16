@@ -11,9 +11,12 @@ import (
 	"github.com/redkite127/home-hub/hue"
 	"github.com/redkite127/home-hub/influxdb"
 
+	influxdb2_api "github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/oklog/run"
 	"github.com/spf13/viper"
 )
+
+var influxWriter influxdb2_api.WriteAPI
 
 func init() {
 	viper.SetConfigName("default")
@@ -29,7 +32,7 @@ func init() {
 	hue.InitDevices()
 
 	influxdb.InitConfig()
-	influxEnergyW = influxdb.GetClient().WriteAPI(viper.GetString("influxdb.organization"), viper.GetString("influxdb.bucket"))
+	influxWriter = influxdb.GetClient().WriteAPI(viper.GetString("influxdb.organization"), viper.GetString("influxdb.bucket"))
 }
 
 func main() {
@@ -70,14 +73,14 @@ func main() {
 		)
 	}
 
-	// regularly collect and then record temperature data in InfluxDB
+	// regularly collect and then record room data in InfluxDB
 	{
 		ctx, cancel := context.WithCancel(context.Background())
 		g.Add(
 			func() error {
-				log.Println("started collecting temperature data every", viper.GetDuration("frequencies.temperature_data"))
-				err := scheduler(ctx, collectAndSendTemperatureData, viper.GetDuration("frequencies.temperature_data"))
-				log.Println("stopped collecting temperature data")
+				log.Println("started collecting room data every", viper.GetDuration("frequencies.room_data"))
+				err := scheduler(ctx, collectAndSendRoomData, viper.GetDuration("frequencies.room_data"))
+				log.Println("stopped collecting room data")
 
 				return err
 			},

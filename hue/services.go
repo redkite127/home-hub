@@ -44,3 +44,37 @@ func GetTemperatures() (map[string]float32, error) {
 
 	return temps, nil
 }
+
+func GetBatteries() (map[string]float32, error) {
+	url, err := url.JoinPath(config.URL, "clip", "v2", "resource", "device_power")
+	if err != nil {
+		return map[string]float32{}, err
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return map[string]float32{}, err
+	}
+
+	data, _, resp, err := doRequest(req)
+	if resp.StatusCode != http.StatusOK {
+		return map[string]float32{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
+	}
+
+	var bs []BatteryService
+	if err = json.Unmarshal(data, &bs); err != nil {
+		return map[string]float32{}, err
+	}
+
+	batteries := map[string]float32{}
+	for i := range bs {
+		deviceName, ok := config.Devices[bs[i].Owner.RessourceID]
+		if !ok {
+			continue
+		}
+
+		batteries[deviceName] = float32(bs[i].PowerState.BatteryLevel)
+	}
+
+	return batteries, nil
+}

@@ -6,11 +6,8 @@ import (
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
-	influxdb2_api "github.com/influxdata/influxdb-client-go/v2/api"
 	"github.com/redkite127/home-hub/homeassistant"
 )
-
-var influxEnergyW influxdb2_api.WriteAPI
 
 type ElectricalState struct {
 	energyConsumedDay   float64
@@ -93,7 +90,7 @@ func sendElectricalData(es ElectricalState) {
 			"voltage": es.voltageL1,
 		},
 		es.timestamp)
-	influxEnergyW.WritePoint(p1)
+	influxWriter.WritePoint(p1)
 
 	p2 := influxdb2.NewPoint(
 		"energy_meter",
@@ -103,7 +100,7 @@ func sendElectricalData(es ElectricalState) {
 			"voltage": es.voltageL2,
 		},
 		es.timestamp)
-	influxEnergyW.WritePoint(p2)
+	influxWriter.WritePoint(p2)
 
 	p3 := influxdb2.NewPoint(
 		"energy_meter",
@@ -113,7 +110,7 @@ func sendElectricalData(es ElectricalState) {
 			"voltage": es.voltageL3,
 		},
 		es.timestamp)
-	influxEnergyW.WritePoint(p3)
+	influxWriter.WritePoint(p3)
 
 	p4 := influxdb2.NewPoint(
 		"energy_consumed",
@@ -123,7 +120,7 @@ func sendElectricalData(es ElectricalState) {
 			"night": es.energyConsumedNight,
 		},
 		es.timestamp)
-	influxEnergyW.WritePoint(p4)
+	influxWriter.WritePoint(p4)
 
-	influxEnergyW.Flush()
+	influxWriter.Flush()
 }

@@ -61,3 +61,17 @@ type TemperatureService struct {
 	} `json:"temperature"`
 	Type string `json:"type"`
 }
+
+type BatteryService struct {
+	ID    string `json:"id"`
+	IDv1  string `json:"id_v1"`
+	Owner struct {
+		RessourceID   string `json:"rid"`
+		RessourceType string `json:"rtype"`
+	} `json:"owner"`
+	PowerState struct {
+		BatteryState string `json:"battery_state"`
+		BatteryLevel int    `json:"battery_level"`
+	} `json:"power_state"`
+	Type string `json:"type"`
+}
