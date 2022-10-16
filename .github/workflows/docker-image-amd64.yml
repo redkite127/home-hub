@@ -1,0 +1,100 @@
+name: build-and-publish-docker-images
+
+on:
+  push:
+    branches: [ "v2" ]
+
+jobs:
+
+  build-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2        
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      -
+        name: Build executable
+        run: CGO_ENABLED=0 GOOS=linux go build -a -o builds/home-hub .
+      -
+        name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: Dockerfile.no_build
+          push: true
+          tags: redkite/home-hub:v2-linux-amd64
+        
+
+  build-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version-file: go.mod
+      -
+        name: Build executable
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -a -o builds/home-hub .
+      -
+        name: Build and push Docker image
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          file: Dockerfile.no_build
+          platforms: linux/arm64
+          push: true
+          tags: redkite/home-hub:v2-linux-arm64
+
+  build-multiarch:
+    needs: [build-amd64, build-arm64] 
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - 
+        name: Build multiarch image
+        run: |
+          docker manifest create \
+          redkite/home-hub:v2 \
+          --amend redkite/home-hub:v2-linux-amd64 \
+          --amend redkite/home-hub:v2-linux-arm64
+      -
+        name: Push multiarch image
+        run: docker manifest push redkite/home-hub:v2
