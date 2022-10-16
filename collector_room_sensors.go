@@ -13,7 +13,8 @@ type roomState struct {
 	humidity    *float32
 	battery     *float32
 
-	timestamp time.Time
+	sensorType string
+	timestamp  time.Time
 }
 
 func collectAndSendRoomData() error {
@@ -41,6 +42,7 @@ func collectRoomData() (rs map[string]roomState, err error) {
 			rstate := rs[room]
 			rt := t
 			rstate.temperature = &rt
+			rstate.sensorType = "hue"
 			rstate.timestamp = now
 			rs[room] = rstate
 		}
@@ -53,6 +55,7 @@ func collectRoomData() (rs map[string]roomState, err error) {
 			rstate := rs[room]
 			rb := b
 			rstate.battery = &rb
+			rstate.sensorType = "hue"
 			rstate.timestamp = now
 			rs[room] = rstate
 		}
@@ -65,6 +68,7 @@ func sendRoomData(rs map[string]roomState) {
 	for room, state := range rs {
 		p := influxdb2.NewPointWithMeasurement("room_sensors")
 		p.AddTag("room", room)
+		p.AddTag("type", state.sensorType)
 		if state.temperature != nil {
 			p.AddField("temperature", *state.temperature)
 		}
