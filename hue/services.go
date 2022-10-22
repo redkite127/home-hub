@@ -19,6 +19,9 @@ func GetTemperatures() (map[string]float32, error) {
 	}
 
 	data, _, resp, err := doRequest(req)
+	if err != nil {
+		return map[string]float32{}, fmt.Errorf("failed to retrieve temperatures from HUE API: %w", err)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return map[string]float32{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
 	}
@@ -57,6 +60,9 @@ func GetBatteries() (map[string]float32, error) {
 	}
 
 	data, _, resp, err := doRequest(req)
+	if err != nil {
+		return map[string]float32{}, fmt.Errorf("failed to retrieve batteries from HUE API: %w", err)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return map[string]float32{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
 	}

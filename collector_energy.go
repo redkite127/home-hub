@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -27,9 +27,9 @@ type ElectricalState struct {
 func collectAndSendElectricalData() error {
 	es, err := collectElectricalData()
 	if err != nil {
-		return fmt.Errorf("failed to collect electrical data: %w", err)
+		log.Printf("failed to collect electrical data: %s", err)
+		return nil // we don't want to interrupt everything else
 	}
-	//log.Println(es)  // TODO log it only in DEBUG mode
 	sendElectricalData(es)
 
 	return nil

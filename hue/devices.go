@@ -31,6 +31,9 @@ func GetDevices() ([]Device, error) {
 	}
 
 	data, _, resp, err := doRequest(req)
+	if err != nil {
+		return []Device{}, fmt.Errorf("failed to retrieve devices from HUE API: %w", err)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return []Device{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
 	}

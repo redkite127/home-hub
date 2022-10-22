@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -20,9 +20,9 @@ type roomState struct {
 func collectAndSendRoomData() error {
 	ts, err := collectRoomData()
 	if err != nil {
-		return fmt.Errorf("failed to collect room data: %w", err)
+		log.Printf("failed to collect room data: %s", err)
+		return nil // we don't want to interrupt everything else
 	}
-	//log.Println(es)  // TODO log it only in DEBUG mode
 	sendRoomData(ts)
 
 	return nil
