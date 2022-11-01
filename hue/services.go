@@ -39,6 +39,9 @@ func GetTemperatures() (map[string]float32, error) {
 
 		deviceName, ok := config.Devices[ts[i].Owner.RessourceID]
 		if !ok {
+			fmt.Println("NOTICE - unexpected temperature service found")
+			fmt.Println("       - id:", ts[i].ID)
+			fmt.Println("       - owner.id:", ts[i].Owner.RessourceID)
 			continue
 		}
 
@@ -76,6 +79,9 @@ func GetBatteries() (map[string]float32, error) {
 	for i := range bs {
 		deviceName, ok := config.Devices[bs[i].Owner.RessourceID]
 		if !ok {
+			fmt.Println("NOTICE - unexpected battery service found")
+			fmt.Println("       - id:", bs[i].ID)
+			fmt.Println("       - owner.id:", bs[i].Owner.RessourceID)
 			continue
 		}
 
