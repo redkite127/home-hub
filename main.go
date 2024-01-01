@@ -73,7 +73,7 @@ func main() {
 		)
 	}
 
-	// regularly collect and then record room data in InfluxDB
+	// regularly collect and then record room data in InfluxDB (HUE)
 	{
 		ctx, cancel := context.WithCancel(context.Background())
 		g.Add(
