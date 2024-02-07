@@ -24,3 +24,6 @@ redkite/home-hub:v2 \
 --amend redkite/home-hub:v2-linux-armv8
 
 docker manifest push redkite/home-hub:v2
+
+
+------everything is now automated via GitHub workflows! just commit

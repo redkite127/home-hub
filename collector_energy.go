@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"strconv"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -36,46 +35,25 @@ func collectAndSendElectricalData() error {
 }
 
 func collectElectricalData() (es ElectricalState, err error) {
-	// retrive time on the first sample
-	if entity, err := homeassistant.GetEntityState("sensor.electricity_meter_energy_consumption_tarif_1"); err != nil {
-		return ElectricalState{}, err
-	} else {
-		es.timestamp = entity.LastUpdated
+	es = ElectricalState{
+		timestamp: time.Now().UTC(),
+	}
 
-		v, err := strconv.ParseFloat(entity.State, 64)
-		if err != nil {
+	entityStateValues := map[string]*float64{
+		"sensor.electricity_meter_energy_consumption_tarif_1": &es.energyConsumedDay,
+		"sensor.electricity_meter_energy_consumption_tarif_2": &es.energyConsumedNight,
+		"sensor.electricity_meter_power_consumption_phase_l1": &es.powerConsumptionL1,
+		"sensor.electricity_meter_power_consumption_phase_l2": &es.powerConsumptionL2,
+		"sensor.electricity_meter_power_consumption_phase_l3": &es.powerConsumptionL3,
+		"sensor.electricity_meter_voltage_phase_l1":           &es.voltageL1,
+		"sensor.electricity_meter_voltage_phase_l2":           &es.voltageL2,
+		"sensor.electricity_meter_voltage_phase_l3":           &es.voltageL3,
+	}
+
+	for entity, value := range entityStateValues {
+		if *value, err = homeassistant.GetEntityStateValueFloat64(entity); err != nil {
 			return ElectricalState{}, err
 		}
-
-		es.energyConsumedDay = v
-	}
-
-	if es.energyConsumedNight, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_energy_consumption_tarif_2"); err != nil {
-		return ElectricalState{}, err
-	}
-
-	if es.powerConsumptionL1, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_power_consumption_phase_l1"); err != nil {
-		return ElectricalState{}, err
-	}
-
-	if es.powerConsumptionL2, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_power_consumption_phase_l2"); err != nil {
-		return ElectricalState{}, err
-	}
-
-	if es.powerConsumptionL3, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_power_consumption_phase_l3"); err != nil {
-		return ElectricalState{}, err
-	}
-
-	if es.voltageL1, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_voltage_phase_l1"); err != nil {
-		return ElectricalState{}, err
-	}
-
-	if es.voltageL2, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_voltage_phase_l2"); err != nil {
-		return ElectricalState{}, err
-	}
-
-	if es.voltageL3, err = homeassistant.GetEntityStateValueFloat64("sensor.electricity_meter_voltage_phase_l3"); err != nil {
-		return ElectricalState{}, err
 	}
 
 	return es, nil
