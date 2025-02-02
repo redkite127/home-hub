@@ -1,4 +1,0 @@
-FROM alpine:3
-WORKDIR /usr/local/bin
-COPY ./builds/home-hub .
-CMD ["home-hub"]

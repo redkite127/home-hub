@@ -3,47 +3,51 @@ name: build-and-publish-docker-images
 on:
   push:
     branches: [ "v2" ]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2        
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Setup Go environment
-        uses: actions/setup-go@v3
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          go-version-file: go.mod
-      - name: Build executable
-        run: CGO_ENABLED=0 GOOS=linux go build -a -o builds/home-hub .
-      - name: Build and push Docker image (amd64)
-        uses: docker/build-push-action@v4
+          images: redkite/home-hub
+          tags: |
+            type=ref,event=branch
+            type=raw,value=v2
+            type=raw,value=latest
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
         with:
-          file: Dockerfile.no_build
-          platforms: linux/amd64
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: redkite/home-hub:v2-amd64
-      - name: Build and push Docker image (arm64)
-        uses: docker/build-push-action@v4
-        with:
-          file: Dockerfile.no_build
-          platforms: linux/arm64
-          push: true
-          tags: redkite/home-hub:v2-arm64
-      - name: Create and Push Multi-Architecture Manifest
-        run: |
-          docker manifest create redkite/home-hub:v2 \
-            redkite/home-hub:v2-amd64 \
-            redkite/home-hub:v2-arm64
-          docker manifest push redkite/home-hub:v2
-          docker manifest annotate redkite/home-hub:v2 redkite/home-hub:v2-amd64 --os linux --arch amd64
-          docker manifest annotate redkite/home-hub:v2 redkite/home-hub:v2-arm64 --os linux --arch arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
