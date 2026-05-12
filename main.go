@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net/http"
 	"syscall"
 
 	influxdb2_api "github.com/influxdata/influxdb-client-go/v2/api"
@@ -41,22 +40,22 @@ func main() {
 	var g run.Group
 
 	// launch HTTP server for receiving values from sensors
-	{
-		s := &http.Server{
-			Addr: ":" + viper.GetString("port"),
-		}
-		g.Add(
-			func() error {
-				log.Println("started HTTP listening on port", viper.GetString("port"))
-				err := s.ListenAndServe()
-				log.Println("stopped HTTP listening")
+	// {
+	// 	s := &http.Server{
+	// 		Addr: ":" + viper.GetString("port"),
+	// 	}
+	// 	g.Add(
+	// 		func() error {
+	// 			log.Println("started HTTP listening on port", viper.GetString("port"))
+	// 			err := s.ListenAndServe()
+	// 			log.Println("stopped HTTP listening")
 
-				return err
-			},
-			func(error) { s.Shutdown(context.Background()) },
-		)
-		defer s.Close()
-	}
+	// 			return err
+	// 		},
+	// 		func(error) { s.Shutdown(context.Background()) },
+	// 	)
+	// 	defer s.Close()
+	// }
 
 	// regularly collect and then record electrical data in InfluxDB
 	{
