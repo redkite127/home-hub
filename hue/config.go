@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -25,5 +26,5 @@ func InitConfig() {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client = &http.Client{Transport: tr}
+	client = &http.Client{Transport: tr, Timeout: 10 * time.Second}
 }

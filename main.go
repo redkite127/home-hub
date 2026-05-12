@@ -16,7 +16,6 @@ import (
 )
 
 var influxWriter influxdb2_api.WriteAPI
-var influxErrors <-chan error
 var dryRun bool
 
 func init() {
@@ -33,7 +32,9 @@ func init() {
 
 	homeassistant.InitConfig()
 	hue.InitConfig()
-	hue.InitDevices()
+	if err := hue.InitDevices(); err != nil {
+		panic(fmt.Errorf("fatal error initializing HUE devices: %w", err))
+	}
 
 	influxdb.InitConfig()
 	influxWriter = influxdb.GetWriter()

@@ -21,7 +21,7 @@ func GetEntityState(id string) (EntityState, error) {
 	req.Header.Add("Authorization", "Bearer "+config.Token)
 	req.Header.Add("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return EntityState{}, err
 	}

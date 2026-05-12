@@ -2,6 +2,8 @@ package homeassistant
 
 import (
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -17,6 +19,8 @@ var config struct {
 	Token       string                        `mapstructure:"token"`
 	RoomSensors map[string]RoomSensorEntities `mapstructure:"room_sensors"`
 }
+
+var client = &http.Client{Timeout: 10 * time.Second}
 
 func InitConfig() {
 	if err := viper.UnmarshalKey("homeassistant", &config); err != nil {
