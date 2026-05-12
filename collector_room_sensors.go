@@ -103,8 +103,8 @@ func sendRoomData(rs map[string]roomState) {
 			p.AddField("battery", *state.battery)
 		}
 		p.SetTime(state.timestamp)
-		influxWriter.WritePoint(p)
+		writePoint(p)
 	}
 
-	influxWriter.Flush()
+	flushPoints()
 }

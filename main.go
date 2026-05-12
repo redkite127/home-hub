@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"syscall"
@@ -16,8 +17,12 @@ import (
 
 var influxWriter influxdb2_api.WriteAPI
 var influxErrors <-chan error
+var dryRun bool
 
 func init() {
+	flag.BoolVar(&dryRun, "dry-run", false, "log collected data instead of writing to InfluxDB")
+	flag.Parse()
+
 	viper.SetConfigName("default")
 	viper.AddConfigPath("/usr/local/etc/")
 	viper.AddConfigPath("./configs/")
@@ -32,6 +37,10 @@ func init() {
 
 	influxdb.InitConfig()
 	influxWriter = influxdb.GetWriter()
+
+	if dryRun {
+		log.Println("dry-run enabled: InfluxDB writes are disabled")
+	}
 }
 
 func main() {

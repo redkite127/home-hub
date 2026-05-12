@@ -68,7 +68,7 @@ func sendElectricalData(es ElectricalState) {
 			"voltage": es.voltageL1,
 		},
 		es.timestamp)
-	influxWriter.WritePoint(p1)
+	writePoint(p1)
 
 	p2 := influxdb2.NewPoint(
 		"energy_meter",
@@ -78,7 +78,7 @@ func sendElectricalData(es ElectricalState) {
 			"voltage": es.voltageL2,
 		},
 		es.timestamp)
-	influxWriter.WritePoint(p2)
+	writePoint(p2)
 
 	p3 := influxdb2.NewPoint(
 		"energy_meter",
@@ -88,7 +88,7 @@ func sendElectricalData(es ElectricalState) {
 			"voltage": es.voltageL3,
 		},
 		es.timestamp)
-	influxWriter.WritePoint(p3)
+	writePoint(p3)
 
 	p4 := influxdb2.NewPoint(
 		"energy_consumed",
@@ -98,7 +98,7 @@ func sendElectricalData(es ElectricalState) {
 			"night": es.energyConsumedNight,
 		},
 		es.timestamp)
-	influxWriter.WritePoint(p4)
+	writePoint(p4)
 
-	influxWriter.Flush()
+	flushPoints()
 }
