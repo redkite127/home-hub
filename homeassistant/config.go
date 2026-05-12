@@ -6,9 +6,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+type RoomSensorEntities struct {
+	Temperature string `mapstructure:"temperature"`
+	Humidity    string `mapstructure:"humidity"`
+	Battery     string `mapstructure:"battery"`
+}
+
 var config struct {
-	URL   string `mapstructure:"url"`
-	Token string `mapstructure:"token"`
+	URL         string                        `mapstructure:"url"`
+	Token       string                        `mapstructure:"token"`
+	RoomSensors map[string]RoomSensorEntities `mapstructure:"room_sensors"`
 }
 
 func InitConfig() {

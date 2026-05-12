@@ -5,6 +5,11 @@ frequencies:
 homeassistant:
   url: http://<address>:8123
   token: <token>
+  room_sensors:
+    <room_name>:
+      temperature: sensor.<entity_id>
+      humidity: sensor.<entity_id>
+      battery: sensor.<entity_id>
 philips_hue:
   url: https://<address>
   token: <token>

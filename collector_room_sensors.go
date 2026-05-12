@@ -5,6 +5,7 @@ import (
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
+	"github.com/redkite127/home-hub/homeassistant"
 	"github.com/redkite127/home-hub/hue"
 )
 
@@ -61,6 +62,29 @@ func collectRoomData() (rs map[string]roomState, err error) {
 		}
 	}
 
+	// collect data from Home Assistant room sensors (e.g. IKEA Matter)
+	{
+		readings, err := homeassistant.GetRoomSensors()
+		if err != nil {
+			return map[string]roomState{}, err
+		}
+		for room, r := range readings {
+			rstate := rs[room]
+			if r.Temperature != nil {
+				rstate.temperature = r.Temperature
+			}
+			if r.Humidity != nil {
+				rstate.humidity = r.Humidity
+			}
+			if r.Battery != nil {
+				rstate.battery = r.Battery
+			}
+			rstate.sensorType = "homeassistant"
+			rstate.timestamp = now
+			rs[room] = rstate
+		}
+	}
+
 	return
 }
 
@@ -71,6 +95,9 @@ func sendRoomData(rs map[string]roomState) {
 		p.AddTag("type", state.sensorType)
 		if state.temperature != nil {
 			p.AddField("temperature", *state.temperature)
+		}
+		if state.humidity != nil {
+			p.AddField("humidity", *state.humidity)
 		}
 		if state.battery != nil {
 			p.AddField("battery", *state.battery)
