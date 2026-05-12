@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"math"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -10,9 +11,9 @@ import (
 )
 
 type roomState struct {
-	temperature *float32
-	humidity    *float32
-	battery     *float32
+	temperature *float64
+	humidity    *float64
+	battery     *float64
 
 	sensorType string
 	timestamp  time.Time
@@ -94,13 +95,13 @@ func sendRoomData(rs map[string]roomState) {
 		p.AddTag("room", room)
 		p.AddTag("type", state.sensorType)
 		if state.temperature != nil {
-			p.AddField("temperature", *state.temperature)
+			p.AddField("temperature", math.Round(*state.temperature*10)/10)
 		}
 		if state.humidity != nil {
-			p.AddField("humidity", *state.humidity)
+			p.AddField("humidity", math.Round(*state.humidity*10)/10)
 		}
 		if state.battery != nil {
-			p.AddField("battery", *state.battery)
+			p.AddField("battery", math.Round(*state.battery))
 		}
 		p.SetTime(state.timestamp)
 		writePoint(p)

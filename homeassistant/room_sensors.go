@@ -5,9 +5,9 @@ import (
 )
 
 type RoomSensorReading struct {
-	Temperature *float32
-	Humidity    *float32
-	Battery     *float32
+	Temperature *float64
+	Humidity    *float64
+	Battery     *float64
 }
 
 func GetRoomSensors() (map[string]RoomSensorReading, error) {
@@ -21,8 +21,7 @@ func GetRoomSensors() (map[string]RoomSensorReading, error) {
 			if err != nil {
 				log.Printf("homeassistant: failed to read temperature for %s (%s): %s", room, entities.Temperature, err)
 			} else {
-				f := float32(v)
-				r.Temperature = &f
+				r.Temperature = &v
 			}
 		}
 
@@ -31,8 +30,7 @@ func GetRoomSensors() (map[string]RoomSensorReading, error) {
 			if err != nil {
 				log.Printf("homeassistant: failed to read humidity for %s (%s): %s", room, entities.Humidity, err)
 			} else {
-				f := float32(v)
-				r.Humidity = &f
+				r.Humidity = &v
 			}
 		}
 
@@ -41,8 +39,7 @@ func GetRoomSensors() (map[string]RoomSensorReading, error) {
 			if err != nil {
 				log.Printf("homeassistant: failed to read battery for %s (%s): %s", room, entities.Battery, err)
 			} else {
-				f := float32(v)
-				r.Battery = &f
+				r.Battery = &v
 			}
 		}
 

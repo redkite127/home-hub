@@ -10,31 +10,31 @@ import (
 var unexpectedTemperatureServices map[string]bool = map[string]bool{}
 var unexpectedBatteryServices map[string]bool = map[string]bool{}
 
-func GetTemperatures() (map[string]float32, error) {
+func GetTemperatures() (map[string]float64, error) {
 	url, err := url.JoinPath(config.URL, "clip", "v2", "resource", "temperature")
 	if err != nil {
-		return map[string]float32{}, err
+		return map[string]float64{}, err
 	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return map[string]float32{}, err
+		return map[string]float64{}, err
 	}
 
 	data, _, resp, err := doRequest(req)
 	if err != nil {
-		return map[string]float32{}, fmt.Errorf("failed to retrieve temperatures from HUE API: %w", err)
+		return map[string]float64{}, fmt.Errorf("failed to retrieve temperatures from HUE API: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return map[string]float32{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
+		return map[string]float64{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
 	}
 
 	var ts []TemperatureService
 	if err = json.Unmarshal(data, &ts); err != nil {
-		return map[string]float32{}, err
+		return map[string]float64{}, err
 	}
 
-	temps := map[string]float32{}
+	temps := map[string]float64{}
 	for i := range ts {
 		if !ts[i].Temperature.TemperatureValid {
 			continue
@@ -51,37 +51,37 @@ func GetTemperatures() (map[string]float32, error) {
 			continue
 		}
 
-		temps[deviceName] = ts[i].Temperature.Temperature
+		temps[deviceName] = float64(ts[i].Temperature.Temperature)
 	}
 
 	return temps, nil
 }
 
-func GetBatteries() (map[string]float32, error) {
+func GetBatteries() (map[string]float64, error) {
 	url, err := url.JoinPath(config.URL, "clip", "v2", "resource", "device_power")
 	if err != nil {
-		return map[string]float32{}, err
+		return map[string]float64{}, err
 	}
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return map[string]float32{}, err
+		return map[string]float64{}, err
 	}
 
 	data, _, resp, err := doRequest(req)
 	if err != nil {
-		return map[string]float32{}, fmt.Errorf("failed to retrieve batteries from HUE API: %w", err)
+		return map[string]float64{}, fmt.Errorf("failed to retrieve batteries from HUE API: %w", err)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return map[string]float32{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
+		return map[string]float64{}, fmt.Errorf("unexpected status code received from HUE API: %d", resp.StatusCode)
 	}
 
 	var bs []BatteryService
 	if err = json.Unmarshal(data, &bs); err != nil {
-		return map[string]float32{}, err
+		return map[string]float64{}, err
 	}
 
-	batteries := map[string]float32{}
+	batteries := map[string]float64{}
 	for i := range bs {
 		deviceName, ok := config.Devices[bs[i].Owner.RessourceID]
 		if !ok {
@@ -94,7 +94,7 @@ func GetBatteries() (map[string]float32, error) {
 			continue
 		}
 
-		batteries[deviceName] = float32(bs[i].PowerState.BatteryLevel)
+		batteries[deviceName] = float64(bs[i].PowerState.BatteryLevel)
 	}
 
 	return batteries, nil
