@@ -10,13 +10,17 @@ import (
 	"github.com/redkite127/home-hub/hue"
 )
 
+type roomKey struct {
+	room       string
+	sensorType string
+}
+
 type roomState struct {
 	temperature *float64
 	humidity    *float64
 	battery     *float64
 
-	sensorType string
-	timestamp  time.Time
+	timestamp time.Time
 }
 
 func collectAndSendRoomData() error {
@@ -30,36 +34,36 @@ func collectAndSendRoomData() error {
 	return nil
 }
 
-func collectRoomData() (rs map[string]roomState, err error) {
+func collectRoomData() (rs map[roomKey]roomState, err error) {
 	now := time.Now().UTC()
-	rs = map[string]roomState{}
+	rs = map[roomKey]roomState{}
 
 	// collect data from Philips HUE motion sensors
 	{
 		temperatures, err := hue.GetTemperatures()
 		if err != nil {
-			return map[string]roomState{}, err
+			return map[roomKey]roomState{}, err
 		}
 		for room, t := range temperatures {
-			rstate := rs[room]
+			key := roomKey{room: room, sensorType: "hue"}
+			rstate := rs[key]
 			rt := t
 			rstate.temperature = &rt
-			rstate.sensorType = "hue"
 			rstate.timestamp = now
-			rs[room] = rstate
+			rs[key] = rstate
 		}
 
 		batteries, err := hue.GetBatteries()
 		if err != nil {
-			return map[string]roomState{}, err
+			return map[roomKey]roomState{}, err
 		}
 		for room, b := range batteries {
-			rstate := rs[room]
+			key := roomKey{room: room, sensorType: "hue"}
+			rstate := rs[key]
 			rb := b
 			rstate.battery = &rb
-			rstate.sensorType = "hue"
 			rstate.timestamp = now
-			rs[room] = rstate
+			rs[key] = rstate
 		}
 	}
 
@@ -67,10 +71,11 @@ func collectRoomData() (rs map[string]roomState, err error) {
 	{
 		readings, err := homeassistant.GetRoomSensors()
 		if err != nil {
-			return map[string]roomState{}, err
+			return map[roomKey]roomState{}, err
 		}
 		for room, r := range readings {
-			rstate := rs[room]
+			key := roomKey{room: room, sensorType: "homeassistant"}
+			rstate := rs[key]
 			if r.Temperature != nil {
 				rstate.temperature = r.Temperature
 			}
@@ -80,20 +85,19 @@ func collectRoomData() (rs map[string]roomState, err error) {
 			if r.Battery != nil {
 				rstate.battery = r.Battery
 			}
-			rstate.sensorType = "homeassistant"
 			rstate.timestamp = now
-			rs[room] = rstate
+			rs[key] = rstate
 		}
 	}
 
 	return
 }
 
-func sendRoomData(rs map[string]roomState) {
-	for room, state := range rs {
+func sendRoomData(rs map[roomKey]roomState) {
+	for key, state := range rs {
 		p := influxdb2.NewPointWithMeasurement("room_sensors")
-		p.AddTag("room", room)
-		p.AddTag("type", state.sensorType)
+		p.AddTag("room", key.room)
+		p.AddTag("type", key.sensorType)
 		if state.temperature != nil {
 			p.AddField("temperature", math.Round(*state.temperature*10)/10)
 		}
