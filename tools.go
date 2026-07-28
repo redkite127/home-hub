@@ -3,10 +3,29 @@ package main
 import (
 	"context"
 	"log"
+	"math"
 	"time"
 
 	"github.com/influxdata/influxdb-client-go/v2/api/write"
 )
+
+// roundTo rounds at the write boundary, so InfluxDB never stores more precision
+// than the sensor actually reports.
+func roundTo(v float64, digits int) float64 {
+	m := math.Pow(10, float64(digits))
+
+	return math.Round(v*m) / m
+}
+
+// addFieldRounded skips missing readings: a nil value means the sensor was
+// unavailable this cycle and must not be written as a zero.
+func addFieldRounded(p *write.Point, key string, v *float64, digits int) {
+	if v == nil {
+		return
+	}
+
+	p.AddField(key, roundTo(*v, digits))
+}
 
 func writePoint(p *write.Point) {
 	if dryRun {

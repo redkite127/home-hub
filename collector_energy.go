@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -9,96 +10,112 @@ import (
 )
 
 type ElectricalState struct {
-	energyConsumedDay   float64
-	energyConsumedNight float64
+	energyConsumedDay   *float64
+	energyConsumedNight *float64
 
-	powerConsumptionL1 float64
-	powerConsumptionL2 float64
-	powerConsumptionL3 float64
+	powerConsumptionL1 *float64
+	powerConsumptionL2 *float64
+	powerConsumptionL3 *float64
 
-	voltageL1 float64
-	voltageL2 float64
-	voltageL3 float64
+	voltageL1 *float64
+	voltageL2 *float64
+	voltageL3 *float64
+
+	currentL1 *float64
+	currentL2 *float64
+	currentL3 *float64
 
 	timestamp time.Time
 }
 
 func collectAndSendElectricalData() error {
-	es, err := collectElectricalData()
-	if err != nil {
-		log.Printf("failed to collect electrical data: %s", err)
-		return nil // we don't want to interrupt everything else
-	}
-	sendElectricalData(es)
+	sendElectricalData(collectElectricalData())
 
 	return nil
 }
 
-func collectElectricalData() (es ElectricalState, err error) {
-	es = ElectricalState{
+// electricalReader reads entities without failing the cycle: a single sensor
+// that is unavailable or non-numeric only yields nil. DSMR entities do go
+// unavailable when the P1 reader misses a message, and at a 1m collection
+// frequency logging each one separately floods the log during an outage, so
+// failures are accumulated and reported once per cycle instead.
+type electricalReader struct {
+	failed []string
+}
+
+func (r *electricalReader) read(entity string) *float64 {
+	v, err := homeassistant.GetEntityStateValueFloat64(entity)
+	if err != nil {
+		r.failed = append(r.failed, entity)
+		return nil
+	}
+
+	return &v
+}
+
+func collectElectricalData() ElectricalState {
+	r := &electricalReader{}
+
+	es := ElectricalState{
+		energyConsumedDay:   r.read("sensor.electricity_meter_energy_consumption_tarif_1"),
+		energyConsumedNight: r.read("sensor.electricity_meter_energy_consumption_tarif_2"),
+
+		powerConsumptionL1: r.read("sensor.electricity_meter_power_consumption_phase_l1"),
+		powerConsumptionL2: r.read("sensor.electricity_meter_power_consumption_phase_l2"),
+		powerConsumptionL3: r.read("sensor.electricity_meter_power_consumption_phase_l3"),
+
+		voltageL1: r.read("sensor.electricity_meter_voltage_phase_l1"),
+		voltageL2: r.read("sensor.electricity_meter_voltage_phase_l2"),
+		voltageL3: r.read("sensor.electricity_meter_voltage_phase_l3"),
+
+		currentL1: r.read("sensor.electricity_meter_current_phase_l1"),
+		currentL2: r.read("sensor.electricity_meter_current_phase_l2"),
+		currentL3: r.read("sensor.electricity_meter_current_phase_l3"),
+
 		timestamp: time.Now().UTC(),
 	}
 
-	entityStateValues := map[string]*float64{
-		"sensor.electricity_meter_energy_consumption_tarif_1": &es.energyConsumedDay,
-		"sensor.electricity_meter_energy_consumption_tarif_2": &es.energyConsumedNight,
-		"sensor.electricity_meter_power_consumption_phase_l1": &es.powerConsumptionL1,
-		"sensor.electricity_meter_power_consumption_phase_l2": &es.powerConsumptionL2,
-		"sensor.electricity_meter_power_consumption_phase_l3": &es.powerConsumptionL3,
-		"sensor.electricity_meter_voltage_phase_l1":           &es.voltageL1,
-		"sensor.electricity_meter_voltage_phase_l2":           &es.voltageL2,
-		"sensor.electricity_meter_voltage_phase_l3":           &es.voltageL3,
+	if len(r.failed) > 0 {
+		log.Printf("failed to read %d electrical entities: %s", len(r.failed), strings.Join(r.failed, ", "))
 	}
 
-	for entity, value := range entityStateValues {
-		if *value, err = homeassistant.GetEntityStateValueFloat64(entity); err != nil {
-			return ElectricalState{}, err
-		}
-	}
-
-	return es, nil
+	return es
 }
 
 func sendElectricalData(es ElectricalState) {
-	p1 := influxdb2.NewPoint(
-		"energy_meter",
-		map[string]string{"phase": "1"},
-		map[string]interface{}{
-			"power":   es.powerConsumptionL1,
-			"voltage": es.voltageL1,
-		},
-		es.timestamp)
-	writePoint(p1)
+	phases := []struct {
+		phase   string
+		power   *float64
+		voltage *float64
+		current *float64
+	}{
+		{"1", es.powerConsumptionL1, es.voltageL1, es.currentL1},
+		{"2", es.powerConsumptionL2, es.voltageL2, es.currentL2},
+		{"3", es.powerConsumptionL3, es.voltageL3, es.currentL3},
+	}
 
-	p2 := influxdb2.NewPoint(
-		"energy_meter",
-		map[string]string{"phase": "2"},
-		map[string]interface{}{
-			"power":   es.powerConsumptionL2,
-			"voltage": es.voltageL2,
-		},
-		es.timestamp)
-	writePoint(p2)
+	for _, ph := range phases {
+		p := influxdb2.NewPointWithMeasurement("energy_meter")
+		p.AddTag("phase", ph.phase)
+		addFieldRounded(p, "power", ph.power, 3)     // kW
+		addFieldRounded(p, "voltage", ph.voltage, 1) // V
+		addFieldRounded(p, "current", ph.current, 2) // A
+		if len(p.FieldList()) == 0 {
+			continue // InfluxDB rejects points without fields
+		}
+		p.SetTime(es.timestamp)
+		writePoint(p)
+	}
 
-	p3 := influxdb2.NewPoint(
-		"energy_meter",
-		map[string]string{"phase": "3"},
-		map[string]interface{}{
-			"power":   es.powerConsumptionL3,
-			"voltage": es.voltageL3,
-		},
-		es.timestamp)
-	writePoint(p3)
-
-	p4 := influxdb2.NewPoint(
-		"energy_consumed",
-		map[string]string{},
-		map[string]interface{}{
-			"day":   es.energyConsumedDay,
-			"night": es.energyConsumedNight,
-		},
-		es.timestamp)
-	writePoint(p4)
+	{
+		p := influxdb2.NewPointWithMeasurement("energy_consumed")
+		addFieldRounded(p, "day", es.energyConsumedDay, 3)     // kWh
+		addFieldRounded(p, "night", es.energyConsumedNight, 3) // kWh
+		if len(p.FieldList()) > 0 {
+			p.SetTime(es.timestamp)
+			writePoint(p)
+		}
+	}
 
 	flushPoints()
 }

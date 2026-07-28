@@ -2,7 +2,6 @@ package main
 
 import (
 	"log"
-	"math"
 	"time"
 
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
@@ -98,14 +97,11 @@ func sendRoomData(rs map[roomKey]roomState) {
 		p := influxdb2.NewPointWithMeasurement("room_sensors")
 		p.AddTag("room", key.room)
 		p.AddTag("type", key.sensorType)
-		if state.temperature != nil {
-			p.AddField("temperature", math.Round(*state.temperature*10)/10)
-		}
-		if state.humidity != nil {
-			p.AddField("humidity", math.Round(*state.humidity*10)/10)
-		}
-		if state.battery != nil {
-			p.AddField("battery", math.Round(*state.battery))
+		addFieldRounded(p, "temperature", state.temperature, 1)
+		addFieldRounded(p, "humidity", state.humidity, 1)
+		addFieldRounded(p, "battery", state.battery, 0)
+		if len(p.FieldList()) == 0 {
+			continue // every sensor of this room failed; InfluxDB rejects points without fields
 		}
 		p.SetTime(state.timestamp)
 		writePoint(p)
